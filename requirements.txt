@@ -8,3 +8,4 @@ tqdm>=4.65.0
 scikit-image>=0.21.0
 matplotlib>=3.7.0
 pandas>=2.0.0
+kaggle>=1.5.16
