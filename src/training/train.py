@@ -13,6 +13,10 @@ def train():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Training on device: {device}")
     
+    # CuDNN benchmark accelerates convolutions if input sizes remain constant (like our 128x128 crops)
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = True
+    
     epochs = 50
     batch_size = 16
     lr_G = 1e-4
@@ -42,6 +46,10 @@ def train():
     
     criterion_D = nn.BCEWithLogitsLoss()
 
+    # PyTorch AMP (Automatic Mixed Precision) Scalers for 2-3x Speedup & 50% less VRAM
+    scaler_G = torch.cuda.amp.GradScaler()
+    scaler_D = torch.cuda.amp.GradScaler()
+
     # 6. Training Loop
     print("Starting Training Loop...")
     for epoch in range(1, epochs + 1):
@@ -58,32 +66,37 @@ def train():
             # ---------------------
             opt_D.zero_grad()
             
-            # Real images
-            real_preds = discriminator(hr_imgs)
-            loss_D_real = criterion_D(real_preds, torch.ones_like(real_preds))
-            
-            # Fake images
-            fake_imgs = generator(lr_imgs)
-            fake_preds = discriminator(fake_imgs.detach()) # Detach to avoid Generator backprop
-            loss_D_fake = criterion_D(fake_preds, torch.zeros_like(fake_preds))
-            
-            loss_D = (loss_D_real + loss_D_fake) / 2
-            loss_D.backward()
-            opt_D.step()
+            with torch.amp.autocast('cuda'):
+                # Real images
+                real_preds = discriminator(hr_imgs)
+                loss_D_real = criterion_D(real_preds, torch.ones_like(real_preds))
+                
+                # Fake images
+                fake_imgs = generator(lr_imgs)
+                fake_preds = discriminator(fake_imgs.detach()) # Detach to avoid Generator backprop
+                loss_D_fake = criterion_D(fake_preds, torch.zeros_like(fake_preds))
+                
+                loss_D = (loss_D_real + loss_D_fake) / 2
+                
+            scaler_D.scale(loss_D).backward()
+            scaler_D.step(opt_D)
+            scaler_D.update()
 
             # ---------------------
             # Train Generator
             # ---------------------
             opt_G.zero_grad()
             
-            # Recalculate discriminator on fake (without detach to allow gradient flow to G)
-            fake_preds_for_G = discriminator(fake_imgs)
-            
-            # The custom Generator Loss handles Pixel, LPIPS, Adversarial, and our specific Edge Loss
-            loss_G, loss_dict = criterion_G(fake_imgs, hr_imgs, fake_preds_for_G)
-            
-            loss_G.backward()
-            opt_G.step()
+            with torch.amp.autocast('cuda'):
+                # Recalculate discriminator on fake (without detach to allow gradient flow to G)
+                fake_preds_for_G = discriminator(fake_imgs)
+                
+                # The custom Generator Loss handles Pixel, LPIPS, Adversarial, and our specific Edge Loss
+                loss_G, loss_dict = criterion_G(fake_imgs, hr_imgs, fake_preds_for_G)
+                
+            scaler_G.scale(loss_G).backward()
+            scaler_G.step(opt_G)
+            scaler_G.update()
 
             # Logging
             loop.set_description(f"Epoch [{epoch}/{epochs}]")
