@@ -26,9 +26,10 @@ class PixelArtDataset(Dataset):
         # Load all valid image paths (.png, .jpg)
         self.image_files = []
         if os.path.exists(root_dir):
-            for file in os.listdir(root_dir):
-                if file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    self.image_files.append(os.path.join(root_dir, file))
+            for root, _, files in os.walk(root_dir):
+                for file in files:
+                    if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                        self.image_files.append(os.path.join(root, file))
                     
         # ToTensor transform converts PIL images [0, 255] to PyTorch tensors [0.0, 1.0]
         self.to_tensor = transforms.ToTensor()
