@@ -160,12 +160,12 @@ cython_debug/
 .vscode/
 
 # Project Directories (Data / Models)
-data/
-!data/.keep
-models/
-!models/.keep
-outputs/
-!outputs/.keep
+/data/
+!/data/.keep
+/models/
+!/models/.keep
+/outputs/
+!/outputs/.keep
 *.pth
 *.pt
 *.ckpt
