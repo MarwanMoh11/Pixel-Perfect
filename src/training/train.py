@@ -18,7 +18,7 @@ def train():
         torch.backends.cudnn.benchmark = True
     
     epochs = 50
-    batch_size = 16
+    batch_size = 64  # Increased from 16 to 64 to fully utilize 15GB Colab GPU
     lr_G = 1e-4
     lr_D = 1e-4
     checkpoint_dir = 'models/checkpoints'
@@ -26,7 +26,7 @@ def train():
 
     # 2. Dataloaders
     dataset = PixelArtDataset(root_dir='data/raw', hr_size=128, scale=4)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
     # 3. Models
     # Reduced depth from 23 to 8 blocks for 3x faster training. 
