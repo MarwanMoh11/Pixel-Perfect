@@ -38,10 +38,10 @@ def train():
 
     # 5. Losses
     criterion_G = GeneratorLoss(
-        pixel_weight=1e-2, 
+        pixel_weight=1.0, 
         perceptual_weight=1.0, 
-        adv_weight=5e-3, 
-        edge_weight=1e-1
+        adv_weight=0.0, 
+        edge_weight=1.0
     ).to(device)
     
     criterion_D = nn.BCEWithLogitsLoss()
