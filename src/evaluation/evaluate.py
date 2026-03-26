@@ -44,14 +44,32 @@ def evaluate():
     # 2. Setup metric calculators
     loss_fn_vgg = lpips.LPIPS(net='vgg').to(device)
 
-    # 3. Get 5 random test images
-    dataset = PixelArtDataset(root_dir='data/raw', hr_size=128, scale=4)
-    # Using batch_size=5 ensures we get 5 distinct images for our plot
-    dataloader = DataLoader(dataset, batch_size=5, shuffle=True)
+    # 3. Get 5 random test images zoomed properly
+    import random
+    from PIL import Image
+    import torchvision.transforms.functional as TF
+    from torchvision.transforms import ToTensor
     
-    lr_imgs, hr_imgs = next(iter(dataloader))
-    lr_imgs = lr_imgs.to(device)
-    hr_imgs = hr_imgs.to(device)
+    image_files = []
+    for root_name, _, files in os.walk('data/raw'):
+        for file in files:
+            if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                image_files.append(os.path.join(root_name, file))
+    random.shuffle(image_files)
+    
+    lr_list, hr_list = [], []
+    for img_path in image_files[:5]:
+        img = Image.open(img_path).convert('RGB')
+        # Force the tiny raw sprite to fill the 128x128 canvas completely with crisp pixels
+        hr_img = TF.resize(img, [128, 128], interpolation=TF.InterpolationMode.NEAREST)
+        # Create the degraded LR image (32x32)
+        lr_img = TF.resize(hr_img, [32, 32], interpolation=TF.InterpolationMode.NEAREST)
+        
+        hr_list.append(ToTensor()(hr_img))
+        lr_list.append(ToTensor()(lr_img))
+        
+    hr_imgs = torch.stack(hr_list).to(device)
+    lr_imgs = torch.stack(lr_list).to(device)
 
     val_psnr = []
     val_ssim = []
