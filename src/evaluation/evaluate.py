@@ -28,11 +28,13 @@ def evaluate():
     model_path = os.path.join(checkpoint_dir, 'RRDBNet_epoch_50.pth')
     if not os.path.exists(model_path):
         # Fallback to searching the directory for the latest checkpoint
-        files = [f for f in os.listdir(checkpoint_dir) if "RRDBNet" in f]
+        files = [f for f in os.listdir(checkpoint_dir) if "RRDBNet_epoch_" in f]
         if not files:
             print("Error: No Generator checkpoints found in models/checkpoints/")
             return
-        model_path = os.path.join(checkpoint_dir, sorted(files)[-1])
+        # Sort files by their integer epoch number instead of alphabetically
+        files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
+        model_path = os.path.join(checkpoint_dir, files[-1])
         print(f"Did not find epoch 50. Using closest checkpoint: {model_path}")
 
     model = RRDBNet(in_nc=3, out_nc=3, nf=64, nb=23, gc=32).to(device)
