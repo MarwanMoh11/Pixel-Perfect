@@ -47,7 +47,8 @@ def evaluate():
     model_path = os.path.join(checkpoint_dir, files[-1])
     print(f"Loading checkpoint: {model_path}")
 
-    model = RRDBNet(in_nc=3, out_nc=3, nf=64, nb=23, gc=32).to(device)
+    # Ensure evaluation matches the scaled down 8-block network
+    model = RRDBNet(in_nc=3, out_nc=3, nf=64, nb=8, gc=32).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
 
