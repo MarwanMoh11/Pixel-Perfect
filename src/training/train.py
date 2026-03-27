@@ -38,12 +38,12 @@ def train():
     opt_G = optim.Adam(generator.parameters(), lr=lr_G, betas=(0.9, 0.999))
     opt_D = optim.Adam(discriminator.parameters(), lr=lr_D, betas=(0.9, 0.999))
 
-    # 5. Losses
+    # 5. Losses — With proper content-filled training data, we can safely use all losses
     criterion_G = GeneratorLoss(
-        pixel_weight=1.0, 
-        perceptual_weight=1.0, 
-        adv_weight=0.0, 
-        edge_weight=1.0
+        pixel_weight=1.0,        # Strong L1 for pixel-accurate reconstruction
+        perceptual_weight=0.1,   # Light LPIPS for structural coherence
+        adv_weight=0.0,          # Adversarial OFF (causes noise with limited training)
+        edge_weight=0.5          # Custom Sobel edge penalty for sharp pixel borders
     ).to(device)
     
     criterion_D = nn.BCEWithLogitsLoss()

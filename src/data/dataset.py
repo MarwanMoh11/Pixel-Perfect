@@ -5,25 +5,23 @@ from PIL import Image
 import torchvision.transforms.functional as TF
 import torchvision.transforms as transforms
 import random
+import numpy as np
 
 class PixelArtDataset(Dataset):
     """
     Dataset loader for Kaggle Pixel Art dataset.
-    Implements Nearest-Neighbor Downsampling to generate LR-HR pairs.
+    
+    KEY FIX: Instead of padding tiny sprites into massive black canvases,
+    we RESIZE sprites to fill the entire HR canvas using Nearest-Neighbor.
+    This ensures the model trains on actual pixel art content, not empty black space.
     """
     def __init__(self, root_dir='data/raw', hr_size=128, scale=4):
-        """
-        Args:
-            root_dir (str): Path to dataset root directory containing PNGs.
-            hr_size (int): Target size of HR patches.
-            scale (int): Downsampling scale factor (e.g., 4 means 128x128 HR -> 32x32 LR).
-        """
         self.root_dir = root_dir
         self.hr_size = hr_size
         self.scale = scale
         self.lr_size = hr_size // scale
         
-        # Load all valid image paths (.png, .jpg)
+        # Load all valid image paths
         self.image_files = []
         if os.path.exists(root_dir):
             for root, _, files in os.walk(root_dir):
@@ -31,47 +29,66 @@ class PixelArtDataset(Dataset):
                     if file.lower().endswith(('.png', '.jpg', '.jpeg')):
                         self.image_files.append(os.path.join(root, file))
         
-        # KEY SPEEDUP: Limit dataset strictly to 5,000 images per epoch instead of 89,000.
-        # This cuts training time per epoch by a factor of 18 (from 60 mins down to ~3 minutes)
-        # while still providing massive domain variation for pixel art.
+        # Limit to 5000 for training speed
         random.shuffle(self.image_files)
         self.image_files = self.image_files[:5000]
                     
-        # ToTensor transform converts PIL images [0, 255] to PyTorch tensors [0.0, 1.0]
         self.to_tensor = transforms.ToTensor()
 
     def __len__(self):
         return len(self.image_files)
 
+    def _crop_to_content(self, img):
+        """
+        Crop away transparent/black borders to isolate the actual sprite content.
+        Returns the tightly cropped sprite region.
+        """
+        img_array = np.array(img)
+        
+        # Sum across color channels to find non-black pixels
+        if img_array.ndim == 3:
+            gray = np.sum(img_array, axis=2)
+        else:
+            gray = img_array
+            
+        non_black = np.where(gray > 10)  # threshold of 10 to ignore near-black noise
+        
+        if len(non_black[0]) == 0 or len(non_black[1]) == 0:
+            # Entire image is black/empty, return as-is
+            return img
+        
+        y_min, y_max = np.min(non_black[0]), np.max(non_black[0])
+        x_min, x_max = np.min(non_black[1]), np.max(non_black[1])
+        
+        # Ensure minimum crop size of at least 4x4
+        if (y_max - y_min) < 4 or (x_max - x_min) < 4:
+            return img
+            
+        return img.crop((x_min, y_min, x_max + 1, y_max + 1))
+
     def __getitem__(self, idx):
         img_path = self.image_files[idx]
         
         try:
-            # Load HR image and ensure RGB (ignoring alpha channel)
             hr_image = Image.open(img_path).convert('RGB')
-        except Exception as e:
-            # Fallback to random zeroes if image is corrupted
+        except Exception:
             lr_dummy = torch.zeros(3, self.lr_size, self.lr_size)
             hr_dummy = torch.zeros(3, self.hr_size, self.hr_size)
             return lr_dummy, hr_dummy
 
-        # 1. Padding if the image is smaller than hr_size
-        width, height = hr_image.size
-        if width < self.hr_size or height < self.hr_size:
-            pad_w = max(0, self.hr_size - width)
-            pad_h = max(0, self.hr_size - height)
-            # Pad with a flat color, e.g., white or black (using 0 here)
-            hr_image = TF.pad(hr_image, (0, 0, pad_w, pad_h), fill=0, padding_mode='constant')
+        # 1. CROP to content - remove all black/transparent borders
+        hr_image = self._crop_to_content(hr_image)
+        
+        # 2. RESIZE the sprite to FILL the entire 128x128 canvas using Nearest-Neighbor
+        #    This is the critical fix: the model now trains on actual sprite content,
+        #    not 90% black padding. Nearest-Neighbor preserves the hard pixel edges.
+        hr_image = TF.resize(
+            hr_image, 
+            [self.hr_size, self.hr_size], 
+            interpolation=TF.InterpolationMode.NEAREST
+        )
 
-        # 2. Random Crop to ensure it's exactly hr_size x hr_size
-        # TF.crop expects (top, left, height, width)
-        width, height = hr_image.size
-        i = random.randint(0, height - self.hr_size)
-        j = random.randint(0, width - self.hr_size)
-        hr_image = TF.crop(hr_image, i, j, self.hr_size, self.hr_size)
-
-        # 3. Generate LR using strictly NEAREST NEIGHBOR downsampling
-        # This matches the geometry of classic emulators.
+        # 3. Generate LR by downsampling with Nearest-Neighbor (32x32)
         lr_image = TF.resize(
             hr_image, 
             [self.lr_size, self.lr_size], 
