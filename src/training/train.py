@@ -1,4 +1,5 @@
 import os
+import csv
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -52,11 +53,21 @@ def train():
     scaler_G = torch.cuda.amp.GradScaler()
     scaler_D = torch.cuda.amp.GradScaler()
 
-    # 6. Training Loop
+    # 6. Loss log CSV
+    log_path = os.path.join(checkpoint_dir, 'training_log.csv')
+    with open(log_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['epoch', 'G_total', 'G_l1', 'G_perceptual', 'G_edge', 'D_loss'])
+
+    # 7. Training Loop
     print("Starting Training Loop...")
     for epoch in range(1, epochs + 1):
         generator.train()
         discriminator.train()
+        
+        # Accumulators for epoch-average losses
+        epoch_G_total, epoch_G_l1, epoch_G_perc, epoch_G_edge, epoch_D = 0.0, 0.0, 0.0, 0.0, 0.0
+        num_batches = 0
         
         loop = tqdm(dataloader, leave=True)
         for idx, (lr_imgs, hr_imgs) in enumerate(loop):
@@ -69,15 +80,11 @@ def train():
             opt_D.zero_grad()
             
             with torch.amp.autocast('cuda'):
-                # Real images
                 real_preds = discriminator(hr_imgs)
                 loss_D_real = criterion_D(real_preds, torch.ones_like(real_preds))
-                
-                # Fake images
                 fake_imgs = generator(lr_imgs)
-                fake_preds = discriminator(fake_imgs.detach()) # Detach to avoid Generator backprop
+                fake_preds = discriminator(fake_imgs.detach())
                 loss_D_fake = criterion_D(fake_preds, torch.zeros_like(fake_preds))
-                
                 loss_D = (loss_D_real + loss_D_fake) / 2
                 
             scaler_D.scale(loss_D).backward()
@@ -90,17 +97,21 @@ def train():
             opt_G.zero_grad()
             
             with torch.amp.autocast('cuda'):
-                # Recalculate discriminator on fake (without detach to allow gradient flow to G)
                 fake_preds_for_G = discriminator(fake_imgs)
-                
-                # The custom Generator Loss handles Pixel, LPIPS, Adversarial, and our specific Edge Loss
                 loss_G, loss_dict = criterion_G(fake_imgs, hr_imgs, fake_preds_for_G)
                 
             scaler_G.scale(loss_G).backward()
             scaler_G.step(opt_G)
             scaler_G.update()
 
-            # Logging
+            # Accumulate
+            epoch_G_total += loss_dict['total']
+            epoch_G_l1 += loss_dict['l1']
+            epoch_G_perc += loss_dict['perceptual']
+            epoch_G_edge += loss_dict['edge']
+            epoch_D += loss_D.item()
+            num_batches += 1
+
             loop.set_description(f"Epoch [{epoch}/{epochs}]")
             loop.set_postfix(
                 D_loss=loss_D.item(), 
@@ -108,7 +119,19 @@ def train():
                 G_edge=loss_dict['edge']
             )
 
-        # 7. Checkposting
+        # Log epoch averages to CSV
+        with open(log_path, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                epoch,
+                epoch_G_total / num_batches,
+                epoch_G_l1 / num_batches,
+                epoch_G_perc / num_batches,
+                epoch_G_edge / num_batches,
+                epoch_D / num_batches
+            ])
+
+        # Checkpoints
         if epoch % 5 == 0:
             torch.save(generator.state_dict(), os.path.join(checkpoint_dir, f"RRDBNet_epoch_{epoch}.pth"))
             torch.save(discriminator.state_dict(), os.path.join(checkpoint_dir, f"Discriminator_epoch_{epoch}.pth"))
