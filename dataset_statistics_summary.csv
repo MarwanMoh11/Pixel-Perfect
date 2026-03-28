@@ -1,0 +1,6 @@
+metric,value
+total_images,89399
+train_count,71519
+val_count,8939
+test_count,8941
+num_classes,5
