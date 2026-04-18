@@ -664,11 +664,11 @@ penalty = <span class="func">relu</span>(mag - <span class="number">0.05</span>)
       <div class="two-col">
         <div style="display:flex; flex-direction:column; align-items:center;">
           <img src="assets/training_loss_curves.png" class="slide-img" alt="Training Loss Curves">
-          <p class="img-caption">Generator vs Discriminator loss over 50 epochs</p>
+          <p class="img-caption">Generator vs Discriminator loss over 20 epochs (resumed from checkpoint at epoch 6)</p>
         </div>
         <div style="display:flex; flex-direction:column; align-items:center;">
           <img src="assets/generator_loss_breakdown.png" class="slide-img" alt="Generator Loss Breakdown">
-          <p class="img-caption">Component breakdown: L1, LPIPS, Edge-Aware losses</p>
+          <p class="img-caption">Component breakdown: L1, LPIPS, Edge-Aware, Palette, and Adversarial losses</p>
         </div>
       </div>
       <div class="card" style="margin-top: 20px; width: 100%;">
@@ -678,17 +678,17 @@ penalty = <span class="func">relu</span>(mag - <span class="number">0.05</span>)
             <ul class="feature-list" style="font-size:0.82rem;">
               <li><strong>20 epochs</strong> · Batch size 64 · AMP enabled</li>
               <li>Adam optimizer · lr = 1e-4 · β = (0.9, 0.999)</li>
-              <li><strong>30,000 training images</strong> (Scaled up for M2)</li>
+              <li><strong>89,399 training images</strong> (Full dataset for M2)</li>
               <li><strong>Adversarial Loss Enabled</strong> for sharper textures</li>
             </ul>
           </div>
           <div>
             <h3>Key Observations</h3>
             <ul class="feature-list" style="font-size:0.82rem;">
-              <li>Generator loss stabilizes after ~10 epochs</li>
-              <li>Discriminator loss shows oscillatory behavior → mode exploration</li>
-              <li>Edge-Aware loss stays near zero → model quickly learns sharp edges</li>
-              <li>LPIPS perceptual loss acts as structural regularizer</li>
+              <li>Generator loss stabilizes around 0.08–0.12 after epoch 14</li>
+              <li>Discriminator collapses near zero → Generator dominates (expected for pixel art)</li>
+              <li>Adversarial loss dominates the total — drives texture sharpness</li>
+              <li>Edge, Palette, L1 losses remain low and stable → model locks in pixel structure early</li>
             </ul>
           </div>
         </div>
@@ -771,13 +771,13 @@ penalty = <span class="func">relu</span>(mag - <span class="number">0.05</span>)
           <ul class="feature-list">
             <li>PSNR favors <strong>blurry</strong> outputs (penalizes any deviation equally)</li>
             <li>LPIPS measures <strong>perceptual similarity</strong> — how humans actually see quality</li>
-            <li>Our model: <strong style="color:var(--accent);">0.0022</strong> LPIPS</li>
-            <li>Baseline: <strong style="color:#ef4444;">0.5082</strong> LPIPS</li>
-            <li>That's a <strong>230× improvement</strong> in perceptual quality</li>
+            <li>Our model: <strong style="color:var(--accent);">0.0062</strong> LPIPS</li>
+            <li>Baseline: <strong style="color:#ef4444;">0.4874</strong> LPIPS</li>
+            <li>That's a <strong>79× improvement</strong> in perceptual quality</li>
           </ul>
           <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
             <div class="metric-badge">
-              <span class="value">230×</span>
+              <span class="value">79×</span>
               <span class="label">Better LPIPS</span>
             </div>
             <div class="metric-badge">
@@ -872,7 +872,7 @@ penalty = <span class="func">relu</span>(mag - <span class="number">0.05</span>)
             <li><strong>NN downsampling</strong> is critical — preserves the geometric LR-HR relationship</li>
             <li><strong>Edge-Aware Loss</strong> improves perceptual quality (LPIPS: 0.0040 → 0.0029)</li>
             <li>PSNR of <strong>41.10 dB</strong> and SSIM of <strong>0.992</strong> — near-perfect reconstruction</li>
-            <li><strong>230× improvement</strong> in LPIPS over bicubic baseline</li>
+            <li><strong>79× improvement</strong> in LPIPS over bicubic baseline</li>
           </ul>
         </div>
         <div class="card">
@@ -905,7 +905,7 @@ penalty = <span class="func">relu</span>(mag - <span class="number">0.05</span>)
           <span class="label">LPIPS</span>
         </div>
         <div class="metric-badge">
-          <span class="value">230×</span>
+          <span class="value">79×</span>
           <span class="label">vs Baseline</span>
         </div>
       </div>
