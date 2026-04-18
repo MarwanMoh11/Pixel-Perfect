@@ -10,7 +10,7 @@ import numpy as np
 
 def load_log(csv_path):
     """Load a training_log.csv into a dict of lists."""
-    data = {'epoch': [], 'G_total': [], 'G_l1': [], 'G_perceptual': [], 'G_edge': [], 'D_loss': []}
+    data = {'epoch': [], 'G_total': [], 'G_l1': [], 'G_perceptual': [], 'G_edge': [], 'G_palette': [], 'G_adv': [], 'D_loss': []}
     with open(csv_path, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -48,6 +48,8 @@ def plot_curves():
     ax2.plot(epochs, data['G_l1'], linewidth=2, label='L1 Pixel Loss', color='#3498db')
     ax2.plot(epochs, data['G_perceptual'], linewidth=2, label='LPIPS Perceptual Loss', color='#9b59b6')
     ax2.plot(epochs, data['G_edge'], linewidth=2, label='Edge-Aware Sharpness Loss', color='#e67e22')
+    ax2.plot(epochs, data['G_palette'], linewidth=2, label='Palette Constraint Loss', color='#f1c40f')
+    ax2.plot(epochs, data['G_adv'], linewidth=2, label='Adversarial Loss', color='#e74c3c')
     ax2.plot(epochs, data['G_total'], linewidth=2, label='Total Generator Loss', color='#2ecc71', linestyle='--')
     ax2.set_xlabel('Epoch', fontsize=12)
     ax2.set_ylabel('Loss', fontsize=12)
