@@ -90,12 +90,12 @@ def train():
     else:
         print("=> No checkpoint found, starting from scratch.")
 
-    # 7. Loss log CSV — append if resuming, create fresh otherwise
+    # 7. Loss log CSV — always ensure header exists (handles fresh clones on resume)
     log_path = os.path.join(checkpoint_dir, 'training_log.csv')
-    if start_epoch == 1:
+    header = ['epoch', 'G_total', 'G_l1', 'G_perceptual', 'G_edge', 'G_palette', 'G_adv', 'D_loss']
+    if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
         with open(log_path, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['epoch', 'G_total', 'G_l1', 'G_perceptual', 'G_edge', 'G_palette', 'G_adv', 'D_loss'])
+            csv.writer(f).writerow(header)
 
     # 8. Training Loop
     print("Starting Training Loop...")
