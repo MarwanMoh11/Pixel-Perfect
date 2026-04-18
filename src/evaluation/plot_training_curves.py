@@ -9,11 +9,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def load_log(csv_path):
-    """Load a training_log.csv into a dict of lists."""
+    """Load a training_log.csv into a dict of lists.
+    Handles UTF-8 BOM and duplicate header rows from resumed training."""
     data = {'epoch': [], 'G_total': [], 'G_l1': [], 'G_perceptual': [], 'G_edge': [], 'G_palette': [], 'G_adv': [], 'D_loss': []}
-    with open(csv_path, 'r') as f:
+    with open(csv_path, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         for row in reader:
+            # Skip duplicate header rows that may appear from resumed training
+            try:
+                float(row['epoch'])
+            except (ValueError, KeyError):
+                continue
             for key in data:
                 data[key].append(float(row[key]))
     return data
