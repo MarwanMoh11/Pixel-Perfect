@@ -33,7 +33,7 @@ Our first core update remains the nearest-neighbor downsampling strategy, which 
 ---
 
 SLIDE 7 — MILESTONE 2 PROGRESS & FINAL RESULTS
-For this final milestone, we significantly scaled up our training. We trained on the full 89,399 image dataset for 30 epochs, utilizing mixed precision training to handle the massive data volume. Looking at the charts, you can see how the addition of the adversarial loss changes the dynamics — the discriminator and generator engage in a much more aggressive min-max game, which translates visually to much sharper, crispier pixel boundaries. Both the edge loss and the new palette loss stabilize nicely, proving that our custom constraints successfully guide the GAN without collapsing the training. This scale-up represents the core technical achievement of this milestone.
+For this final milestone, we significantly scaled up our training. We trained on a massive 30,000 image subset for 20 epochs, utilizing mixed precision training to handle the large data volume. Looking at the charts, you can see how the addition of the adversarial loss changes the dynamics — the discriminator and generator engage in a much more aggressive min-max game, which translates visually to much sharper, crispier pixel boundaries. Both the edge loss and the new palette loss stabilize nicely, proving that our custom constraints successfully guide the GAN without collapsing the training. This scale-up represents the core technical achievement of this milestone.
 
 ---
 
