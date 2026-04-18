@@ -1,5 +1,6 @@
 import os
 import csv
+import glob
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -8,6 +9,19 @@ from src.training.loss import GeneratorLoss
 from src.data.dataset import PixelArtDataset
 import torch.optim as optim
 from tqdm import tqdm
+
+def find_latest_checkpoint(checkpoint_dir):
+    """Scan checkpoint_dir for the highest-epoch full training state file."""
+    pattern = os.path.join(checkpoint_dir, "training_state_epoch_*.pth")
+    files = glob.glob(pattern)
+    if not files:
+        return None, 0
+    # Extract epoch numbers and pick the max
+    def _epoch_num(path):
+        base = os.path.basename(path)
+        return int(base.replace("training_state_epoch_", "").replace(".pth", ""))
+    latest = max(files, key=_epoch_num)
+    return latest, _epoch_num(latest)
 
 def train():
     # 1. Configuration
@@ -54,15 +68,33 @@ def train():
     scaler_G = torch.amp.GradScaler('cuda')
     scaler_D = torch.amp.GradScaler('cuda')
 
-    # 6. Loss log CSV
-    log_path = os.path.join(checkpoint_dir, 'training_log.csv')
-    with open(log_path, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['epoch', 'G_total', 'G_l1', 'G_perceptual', 'G_edge', 'G_palette', 'G_adv', 'D_loss'])
+    # 6. Resume from checkpoint if available
+    start_epoch = 1
+    ckpt_path, resumed_epoch = find_latest_checkpoint(checkpoint_dir)
+    if ckpt_path is not None:
+        print(f"=> Resuming from checkpoint: {ckpt_path}  (epoch {resumed_epoch})")
+        ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+        generator.load_state_dict(ckpt['generator'])
+        discriminator.load_state_dict(ckpt['discriminator'])
+        opt_G.load_state_dict(ckpt['opt_G'])
+        opt_D.load_state_dict(ckpt['opt_D'])
+        scaler_G.load_state_dict(ckpt['scaler_G'])
+        scaler_D.load_state_dict(ckpt['scaler_D'])
+        start_epoch = resumed_epoch + 1
+        print(f"=> Will resume training from epoch {start_epoch}")
+    else:
+        print("=> No checkpoint found, starting from scratch.")
 
-    # 7. Training Loop
+    # 7. Loss log CSV — append if resuming, create fresh otherwise
+    log_path = os.path.join(checkpoint_dir, 'training_log.csv')
+    if start_epoch == 1:
+        with open(log_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['epoch', 'G_total', 'G_l1', 'G_perceptual', 'G_edge', 'G_palette', 'G_adv', 'D_loss'])
+
+    # 8. Training Loop
     print("Starting Training Loop...")
-    for epoch in range(1, epochs + 1):
+    for epoch in range(start_epoch, epochs + 1):
         generator.train()
         discriminator.train()
         
@@ -137,11 +169,21 @@ def train():
                 epoch_D / num_batches
             ])
 
-        # Checkpoints
-        if epoch % 5 == 0:
-            torch.save(generator.state_dict(), os.path.join(checkpoint_dir, f"RRDBNet_epoch_{epoch}.pth"))
-            torch.save(discriminator.state_dict(), os.path.join(checkpoint_dir, f"Discriminator_epoch_{epoch}.pth"))
-            print(f"-> Saved Checkpoints for Epoch {epoch}")
+        # Save full training state EVERY epoch for crash-resilient resumption
+        state = {
+            'epoch': epoch,
+            'generator': generator.state_dict(),
+            'discriminator': discriminator.state_dict(),
+            'opt_G': opt_G.state_dict(),
+            'opt_D': opt_D.state_dict(),
+            'scaler_G': scaler_G.state_dict(),
+            'scaler_D': scaler_D.state_dict(),
+        }
+        torch.save(state, os.path.join(checkpoint_dir, f"training_state_epoch_{epoch}.pth"))
+        # Also keep the standalone model weights for easy inference
+        torch.save(generator.state_dict(), os.path.join(checkpoint_dir, f"RRDBNet_epoch_{epoch}.pth"))
+        torch.save(discriminator.state_dict(), os.path.join(checkpoint_dir, f"Discriminator_epoch_{epoch}.pth"))
+        print(f"-> Saved Checkpoint for Epoch {epoch}")
 
 if __name__ == '__main__':
     train()
