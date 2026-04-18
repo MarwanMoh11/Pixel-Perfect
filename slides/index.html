@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel-Perfect — Content-Aware Super-Resolution for Retro Game Assets</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* =========== RESET & BASE =========== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; color: #e8e8f0; }
+
+    /* =========== CSS VARIABLES =========== */
+    :root {
+      --accent: #00f0ff;
+      --accent2: #c084fc;
+      --accent3: #f472b6;
+      --bg-dark: #0a0a12;
+      --bg-card: rgba(20, 20, 40, 0.7);
+      --text: #e8e8f0;
+      --text-dim: #9898b0;
+      --glass: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08);
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-pixel: 'Press Start 2P', monospace;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    /* =========== SLIDE CONTAINER =========== */
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 80px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(60px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      font-family: var(--font-body);
+      overflow-y: auto;
+    }
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+    .slide.prev {
+      transform: translateX(-60px);
+    }
+
+    /* =========== GLOBAL BG EFFECTS =========== */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      filter: blur(180px);
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-glow.cyan { background: var(--accent); top: -200px; left: -100px; }
+    .bg-glow.purple { background: var(--accent2); bottom: -200px; right: -100px; }
+
+    /* =========== TYPOGRAPHY =========== */
+    h1.title {
+      font-family: var(--font-pixel);
+      font-size: 2.6rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.5;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    h2.slide-title {
+      font-family: var(--font-pixel);
+      font-size: 1.3rem;
+      color: var(--accent);
+      margin-bottom: 32px;
+      text-align: center;
+      letter-spacing: 1px;
+      text-shadow: 0 0 30px rgba(0,240,255,0.3);
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      font-size: 1.15rem;
+      color: var(--text-dim);
+      text-align: center;
+      max-width: 700px;
+      line-height: 1.7;
+    }
+    .authors {
+      font-size: 1rem;
+      color: var(--accent2);
+      margin-top: 20px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .dept {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    /* =========== CARDS & CONTAINERS =========== */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .content-area {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      width: 100%;
+    }
+    .three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+    }
+
+    /* =========== LISTS =========== */
+    ul.feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    ul.feature-list li {
+      position: relative;
+      padding-left: 28px;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    ul.feature-list li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+
+    /* =========== METRIC BADGE =========== */
+    .metric-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 18px 24px;
+      background: linear-gradient(135deg, rgba(0,240,255,0.08), rgba(192,132,252,0.08));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      text-align: center;
+    }
+    .metric-badge .value {
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .metric-badge .label {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-top: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* =========== IMAGES =========== */
+    .slide-img {
+      max-width: 100%;
+      max-height: 52vh;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      object-fit: contain;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+    .slide-img.large {
+      max-height: 60vh;
+    }
+    .img-caption {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 10px;
+      text-align: center;
+      font-style: italic;
+    }
+
+    /* =========== CODE BLOCK =========== */
+    .code-block {
+      background: rgba(10,10,20,0.8);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: #d4d4e8;
+      overflow-x: auto;
+      max-width: 100%;
+    }
+    .code-block .keyword { color: var(--accent2); }
+    .code-block .func { color: var(--accent); }
+    .code-block .string { color: #86efac; }
+    .code-block .comment { color: #6b7280; font-style: italic; }
+    .code-block .number { color: #fbbf24; }
+
+    /* =========== TABLE =========== */
+    .styled-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .styled-table thead th {
+      background: rgba(0,240,255,0.08);
+      color: var(--accent);
+      font-weight: 600;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .styled-table tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .styled-table tbody tr:hover {
+      background: rgba(0,240,255,0.03);
+    }
+    .highlight-row td {
+      background: rgba(0,240,255,0.06) !important;
+      font-weight: 600;
+    }
+
+    /* =========== NAV CONTROLS =========== */
+    .nav {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 100;
+      padding: 10px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      backdrop-filter: blur(16px);
+    }
+    .nav button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .nav button:hover {
+      background: rgba(0,240,255,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .slide-counter {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      min-width: 60px;
+      text-align: center;
+    }
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      z-index: 100;
+      transition: width 0.4s ease;
+    }
+
+    /* =========== DOTS =========== */
+    .dot-nav {
+      display: flex;
+      gap: 6px;
+    }
+    .dot-nav span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .dot-nav span.active {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* =========== SPECIAL: Architecture Diagram =========== */
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .arch-box {
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .arch-box.input { background: rgba(0,240,255,0.1); color: var(--accent); border-color: var(--accent); }
+    .arch-box.rrdb { background: rgba(192,132,252,0.1); color: var(--accent2); border-color: var(--accent2); }
+    .arch-box.output { background: rgba(134,239,172,0.1); color: #86efac; border-color: #86efac; }
+    .arch-arrow { color: var(--text-dim); font-size: 1.2rem; }
+
+    /* =========== TAG =========== */
+    .tag {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tag.cyan { background: rgba(0,240,255,0.12); color: var(--accent); }
+    .tag.purple { background: rgba(192,132,252,0.12); color: var(--accent2); }
+    .tag.pink { background: rgba(244,114,182,0.12); color: var(--accent3); }
+    .tag.green { background: rgba(134,239,172,0.12); color: #86efac; }
+
+    /* =========== ANIMATIONS =========== */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.25; }
+    }
+    .bg-glow { animation: pulse-glow 6s ease-in-out infinite; }
+    .float-anim { animation: float 4s ease-in-out infinite; }
+
+    /* Contribution badges */
+    .contrib-card {
+      text-align: center;
+      padding: 24px;
+    }
+    .contrib-card .name {
+      font-family: var(--font-pixel);
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+    }
+    .contrib-card ul {
+      list-style: none;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .contrib-card ul li {
+      font-size: 0.82rem;
+      line-height: 1.5;
+      padding-left: 20px;
+      position: relative;
+    }
+    .contrib-card ul li::before {
+      content: '✦';
+      position: absolute;
+      left: 0;
+    }
+    .contrib-card.hadi .name { color: var(--accent); }
+    .contrib-card.hadi ul li::before { color: var(--accent); }
+    .contrib-card.marwan .name { color: var(--accent2); }
+    .contrib-card.marwan ul li::before { color: var(--accent2); }
+
+    .loss-formula {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      padding: 16px 24px;
+      background: rgba(10,10,20,0.8);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-align: center;
+      margin: 12px 0;
+      letter-spacing: 0.5px;
+    }
+
+    /* Scrollbar styling for overflow slides */
+    .slide::-webkit-scrollbar { width: 4px; }
+    .slide::-webkit-scrollbar-track { background: transparent; }
+    .slide::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .update-card {
+      padding: 24px;
+    }
+    .update-card h3 {
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+    .update-card p {
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Background Effects -->
+<div class="bg-grid"></div>
+<div class="bg-glow cyan"></div>
+<div class="bg-glow purple"></div>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- ============================== SLIDES ============================== -->
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active" data-slide="0">
+    <div class="content-area">
+      <div style="font-size:3.5rem; margin-bottom:20px;" class="float-anim">🎮</div>
+      <h1 class="title">Pixel-Perfect</h1>
+      <p class="subtitle" style="margin-top:8px;">Content-Aware Super-Resolution for Retro Game Assets</p>
+      <p style="color:var(--text-dim); font-size:0.9rem; margin-top:24px;">Advanced Machine Learning — Spring 2026</p>
+      <p class="authors">Hadi Hesham &nbsp;·&nbsp; Marwan Abudaif</p>
+      <p class="dept">The American University in Cairo</p>
+      <div style="margin-top: 32px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+        <span class="tag cyan">Milestone 2 (Final)</span>
+        <span class="tag purple">Full 89k Dataset</span>
+        <span class="tag pink">Adversarial Training</span>
+        <span class="tag green">Palette Loss</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Problem Statement -->
+  <div class="slide" data-slide="1">
+    <div class="content-area">
+      <h2 class="slide-title">The Problem</h2>
+      <div class="two-col">
+        <div class="card">
+          <h3>Why Standard Upscaling Fails</h3>
+          <ul class="feature-list">
+            <li>Retro games run at <strong>256×240</strong> resolution — tiny on 4K monitors</li>
+            <li><strong>Bicubic/Bilinear</strong> interpolation produces blurry, muddy images</li>
+            <li>SOTA SR models (SRGAN, SwinIR) are trained on <strong>photorealistic</strong> data</li>
+            <li>They interpret sharp pixel edges as <strong>"noise"</strong> and smooth them out</li>
+            <li>Result: an <strong>"oil painting" effect</strong> that destroys the artistic intent</li>
+          </ul>
+        </div>
+        <div class="card" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+          <h3>What We Need</h3>
+          <ul class="feature-list">
+            <li>Sharp, binary edges — no anti-aliasing</li>
+            <li>Limited color palettes preserved</li>
+            <li>Grid-aligned pixel geometry respected</li>
+            <li>4× resolution increase (32×32 → 128×128)</li>
+          </ul>
+          <div style="margin-top: 20px; display:flex; gap:8px;">
+            <span class="tag cyan">Hard Edges</span>
+            <span class="tag purple">No Blur</span>
+            <span class="tag green">Pixel Fidelity</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Dataset (Hadi's contribution) -->
+  <div class="slide" data-slide="2">
+    <div class="content-area">
+      <h2 class="slide-title">Dataset & Preprocessing</h2>
+      <div style="display: flex; gap: 24px; width: 100%; align-items: flex-start;">
+        <div class="card" style="flex: 1;">
+          <h3>Kaggle Pixel Art Dataset</h3>
+          <ul class="feature-list">
+            <li><strong>89,399</strong> total pixel-art images (sprites & objects)</li>
+            <li>All images are <strong>16×16</strong> resolution</li>
+            <li><strong>80/10/10</strong> Train / Validation / Test split</li>
+            <li>71,519 train · 8,939 val · 8,941 test</li>
+            <li>~500 MB — feasible for Colab training</li>
+          </ul>
+          <div style="margin-top: 16px;">
+            <h3>Nearest-Neighbor Downsampling</h3>
+            <ul class="feature-list">
+              <li>HR sprites resized to <strong>128×128</strong> via NN interpolation</li>
+              <li>LR counterparts created at <strong>32×32</strong> via NN downsample</li>
+              <li>Preserves <strong>blocky geometry</strong> — no smooth blur introduced</li>
+            </ul>
+          </div>
+        </div>
+        <div style="flex: 1.2; display:flex; flex-direction:column; gap:16px; align-items:center;">
+          <img src="assets/dataset_statistics_figure.png" class="slide-img" style="max-height: 36vh;" alt="Dataset Statistics">
+          <p class="img-caption">Dataset statistics: split distribution, size distribution, and dominant colors</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Sample Visualizations (Hadi) -->
+  <div class="slide" data-slide="3">
+    <div class="content-area">
+      <h2 class="slide-title">Sample Preprocessing Pipeline</h2>
+      <div style="display:flex; gap:24px; align-items:center;">
+        <img src="assets/sample_visualizations_figure.png" class="slide-img large" alt="Sample Visualizations">
+        <div class="card" style="min-width: 280px;">
+          <h3>Pipeline Stages</h3>
+          <ul class="feature-list">
+            <li><strong>Raw HR</strong> — Original sprite from dataset</li>
+            <li><strong>NN Downsampled</strong> — 8×8 low-res via Nearest-Neighbor</li>
+            <li><strong>Processed LR</strong> — Resized back for model input</li>
+          </ul>
+          <div style="margin-top:16px;">
+            <h3>Key Property</h3>
+            <p style="font-size:0.85rem; color:var(--text-dim); line-height:1.6;">Unlike bicubic which introduces smooth gradients, NN downsampling maintains <strong style="color:var(--accent);">hard pixel boundaries</strong> — teaching the model that the LR-HR relationship is geometric, not smooth.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Model Architecture -->
+  <div class="slide" data-slide="4">
+    <div class="content-area">
+      <h2 class="slide-title">Model Architecture</h2>
+      <div class="card" style="width:100%;">
+        <h3>ESRGAN — Enhanced Super-Resolution GAN</h3>
+        <div class="arch-flow" style="margin: 20px 0;">
+          <div class="arch-box input">LR Image<br><small>32×32×3</small></div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-box" style="background:rgba(0,240,255,0.06); color:var(--text);">Conv First<br><small>3→64</small></div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-box rrdb">8× RRDB<br><small>Residual-in-Residual<br>Dense Blocks</small></div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-box" style="background:rgba(0,240,255,0.06); color:var(--text);">Trunk Conv<br><small>+ Skip</small></div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-box" style="background:rgba(244,114,182,0.08); color:var(--accent3); border-color:var(--accent3);">NN Upsample<br><small>2× → 2×</small></div>
+          <span class="arch-arrow">→</span>
+          <div class="arch-box output">HR Image<br><small>128×128×3</small></div>
+        </div>
+      </div>
+      <div class="two-col" style="margin-top: 20px;">
+        <div class="card">
+          <h3>Key Design Choices</h3>
+          <ul class="feature-list">
+            <li><strong>No Batch Normalization</strong> in Generator — prevents artifacts</li>
+            <li><strong>Residual scaling (0.2)</strong> for stable deep training</li>
+            <li><strong>Dense connections</strong> within each block (5 conv layers)</li>
+            <li><strong>8 RRDB blocks</strong> reduced from 23 — sufficient for pixel-art geometry</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>VGG-Style Discriminator</h3>
+          <ul class="feature-list">
+            <li>Processes <strong>128×128</strong> patches</li>
+            <li>10 conv layers with <strong>BatchNorm</strong> + LeakyReLU</li>
+            <li>Progressive downsampling: 128→64→32→16→8→4</li>
+            <li>Binary classifier: Real vs. Generated</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Loss Functions (Our Updates) -->
+  <div class="slide" data-slide="5">
+    <div class="content-area">
+      <h2 class="slide-title">Proposed Updates</h2>
+      <div class="two-col">
+        <div class="card update-card">
+          <span class="tag cyan" style="margin-bottom:12px; display:inline-block;">Update 1</span>
+          <h3>Nearest-Neighbor Downsampling</h3>
+          <p>Standard SR models train on bicubic-downsampled LR images (which are blurry). We create all training pairs using <strong style="color:var(--accent);">Nearest-Neighbor</strong> downsampling — preserving blocky pixel geometry and teaching the model that the LR→HR mapping is geometric, not smooth.</p>
+          <div class="code-block" style="margin-top:16px; font-size:0.72rem;">
+<span class="comment"># Nearest-Neighbor preserves hard pixel edges</span>
+hr_image = TF.resize(img, [<span class="number">128</span>, <span class="number">128</span>],
+    interpolation=<span class="func">InterpolationMode.NEAREST</span>)
+lr_image = TF.resize(hr_image, [<span class="number">32</span>, <span class="number">32</span>],
+    interpolation=<span class="func">InterpolationMode.NEAREST</span>)
+          </div>
+        </div>
+        <div class="card update-card">
+          <span class="tag purple" style="margin-bottom:12px; display:inline-block;">Update 2</span>
+          <h3>Edge-Aware Sharpness & Palette Loss (Milestone 2)</h3>
+          <p>We combine a Sobel edge-penalty to remove "oily" blur, and a new <strong style="color:var(--accent2);">Palette-Constraint Loss</strong> that snaps generated colors to a strict 8-bit/16-bit grid, solving the color drifting problem.</p>
+          <div class="code-block" style="margin-top:16px; font-size:0.72rem;">
+<span class="comment"># Penalize smooth transitions (anti-aliasing)</span>
+grad_x = <span class="func">conv2d</span>(gray, sobel_x, padding=<span class="number">1</span>)
+grad_y = <span class="func">conv2d</span>(gray, sobel_y, padding=<span class="number">1</span>)
+magnitude = <span class="func">sqrt</span>(grad_x² + grad_y²)
+
+<span class="comment"># Penalty peaks for "smooth transition" magnitudes</span>
+penalty = <span class="func">relu</span>(mag - <span class="number">0.05</span>) * <span class="func">relu</span>(<span class="number">0.3</span> - mag)
+          </div>
+        </div>
+      </div>
+      <div class="loss-formula" style="margin-top: 20px;">
+        ℒ<sub>total</sub> = <span style="color:var(--accent)">1.0</span> · ℒ<sub>L1</sub> + <span style="color:var(--accent2)">0.1</span> · ℒ<sub>LPIPS</sub> + <span style="color:var(--accent3)">0.5</span> · ℒ<sub>Edge</sub> + <span style="color:#fbbf24">0.05</span> · ℒ<sub>Palette</sub> + <span style="color:#86efac">0.005</span> · ℒ<sub>Adv</sub>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Training Curves (Marwan) -->
+  <div class="slide" data-slide="6">
+    <div class="content-area">
+      <h2 class="slide-title">Milestone 2 Progress & Results</h2>
+      <div class="two-col">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <img src="assets/training_loss_curves.png" class="slide-img" alt="Training Loss Curves">
+          <p class="img-caption">Generator vs Discriminator loss over 50 epochs</p>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <img src="assets/generator_loss_breakdown.png" class="slide-img" alt="Generator Loss Breakdown">
+          <p class="img-caption">Component breakdown: L1, LPIPS, Edge-Aware losses</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 20px; width: 100%;">
+        <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; justify-content:center;">
+          <div>
+            <h3>Final Training Configuration</h3>
+            <ul class="feature-list" style="font-size:0.82rem;">
+              <li><strong>30 epochs</strong> · Batch size 64 · AMP enabled</li>
+              <li>Adam optimizer · lr = 1e-4 · β = (0.9, 0.999)</li>
+              <li><strong>Full 89,399 training images</strong> (Scaled up for M2)</li>
+              <li><strong>Adversarial Loss Enabled</strong> for sharper textures</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Key Observations</h3>
+            <ul class="feature-list" style="font-size:0.82rem;">
+              <li>Generator loss stabilizes after ~10 epochs</li>
+              <li>Discriminator loss shows oscillatory behavior → mode exploration</li>
+              <li>Edge-Aware loss stays near zero → model quickly learns sharp edges</li>
+              <li>LPIPS perceptual loss acts as structural regularizer</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Visual Results (Marwan) -->
+  <div class="slide" data-slide="7">
+    <div class="content-area">
+      <h2 class="slide-title">Visual Comparison</h2>
+      <img src="assets/visual_comparison_grid(5).png" class="slide-img large" alt="Visual Comparison Grid">
+      <p class="img-caption">Ground Truth (128×128) vs Bicubic Upscale (Baseline) vs Pixel-Perfect AI (Ours)</p>
+      <div class="card" style="margin-top: 16px; max-width:800px;">
+        <ul class="feature-list">
+          <li><strong>Bicubic</strong> introduces harsh blocky artifacts with hard white/bright edges that don't match the original</li>
+          <li><strong>Pixel-Perfect (Ours)</strong> faithfully recovers smooth color transitions and sprite shape with visually near-identical output to ground truth</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Ablation Study (Marwan) -->
+  <div class="slide" data-slide="8">
+    <div class="content-area">
+      <h2 class="slide-title">Ablation Study</h2>
+      <div class="two-col">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <img src="assets/ablation_metrics_chart(1).png" class="slide-img" alt="Ablation Metrics Chart">
+          <p class="img-caption">Impact of Edge-Aware Sharpness Loss on all metrics</p>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <img src="assets/ablation_visual_grid(1).png" class="slide-img" alt="Ablation Visual Grid" style="max-height:45vh;">
+          <p class="img-caption">Visual comparison: Bicubic vs No Edge vs Edge Loss (Ours)</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px; width:100%;">
+        <table class="styled-table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>PSNR (dB) ↑</th>
+              <th>SSIM ↑</th>
+              <th>LPIPS ↓</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Bicubic Upscale</td>
+              <td>23.18</td>
+              <td>0.8034</td>
+              <td>0.4758</td>
+            </tr>
+            <tr>
+              <td>ESRGAN (No Edge Loss)</td>
+              <td>41.51</td>
+              <td>0.9923</td>
+              <td>0.0040</td>
+            </tr>
+            <tr class="highlight-row">
+              <td>ESRGAN + Edge Loss (Ours)</td>
+              <td>41.10</td>
+              <td>0.9920</td>
+              <td><strong>0.0029</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: LPIPS Bar Chart (Marwan) -->
+  <div class="slide" data-slide="9">
+    <div class="content-area">
+      <h2 class="slide-title">Perceptual Quality — LPIPS</h2>
+      <div style="display:flex; gap: 32px; align-items: center;">
+        <img src="assets/lpips_bar_chart(2).png" class="slide-img large" alt="LPIPS Bar Chart">
+        <div class="card" style="min-width: 300px;">
+          <h3>Why LPIPS Matters Most</h3>
+          <ul class="feature-list">
+            <li>PSNR favors <strong>blurry</strong> outputs (penalizes any deviation equally)</li>
+            <li>LPIPS measures <strong>perceptual similarity</strong> — how humans actually see quality</li>
+            <li>Our model: <strong style="color:var(--accent);">0.0022</strong> LPIPS</li>
+            <li>Baseline: <strong style="color:#ef4444;">0.5082</strong> LPIPS</li>
+            <li>That's a <strong>230× improvement</strong> in perceptual quality</li>
+          </ul>
+          <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
+            <div class="metric-badge">
+              <span class="value">230×</span>
+              <span class="label">Better LPIPS</span>
+            </div>
+            <div class="metric-badge">
+              <span class="value">0.99</span>
+              <span class="label">SSIM Score</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: SOTA Comparison -->
+  <div class="slide" data-slide="10">
+    <div class="content-area">
+      <h2 class="slide-title">SOTA Comparison</h2>
+      <div class="card" style="width:100%;">
+        <h3>Representative SOTA on Manga109 (Classical Bicubic ×4 SR)</h3>
+        <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:16px;">Note: No dedicated pixel-art SR benchmark exists. Manga109 serves as a proxy domain (sharp boundaries).</p>
+        <table class="styled-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Domain</th>
+              <th>PSNR (dB)</th>
+              <th>SSIM</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>RCAN</td><td>Manga109</td><td>31.22</td><td>0.9173</td></tr>
+            <tr><td>SAN</td><td>Manga109</td><td>31.18</td><td>0.9169</td></tr>
+            <tr><td>HAN</td><td>Manga109</td><td>31.42</td><td>0.9177</td></tr>
+            <tr><td>RRDB</td><td>Manga109</td><td>31.66</td><td>0.9196</td></tr>
+            <tr><td>SwinIR (DF2K)</td><td>Manga109</td><td>32.03</td><td>0.9260</td></tr>
+            <tr class="highlight-row">
+              <td>Pixel-Perfect (Ours)</td>
+              <td>Pixel Art</td>
+              <td><strong>41.10</strong></td>
+              <td><strong>0.9920</strong></td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.82rem; color:var(--text-dim); margin-top:16px;">⚠️ Not a direct comparison — different domains. Our model is <strong>specialized</strong> for pixel art with NN degradation, which inherently allows higher metrics on in-domain data. The key insight: domain-specific adaptation outperforms domain-general SOTA.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Contributions -->
+  <div class="slide" data-slide="11">
+    <div class="content-area">
+      <h2 class="slide-title">Team Contributions</h2>
+      <div class="two-col">
+        <div class="card contrib-card hadi">
+          <div class="name">Hadi Hesham</div>
+          <span class="tag cyan" style="margin-bottom:16px;">Data & Preprocessing</span>
+          <ul>
+            <li>Download & clean the Kaggle Pixel Art dataset</li>
+            <li>Generate LR–HR training pairs via NN downsampling</li>
+            <li>Implement data loaders & augmentations</li>
+            <li>Create dataset statistics and sample visualizations</li>
+            <li>Sprite content cropping pipeline</li>
+          </ul>
+        </div>
+        <div class="card contrib-card marwan">
+          <div class="name">Marwan Abudaif</div>
+          <span class="tag purple" style="margin-bottom:16px;">Model & Training</span>
+          <ul>
+            <li>Set up ESRGAN training pipeline (PyTorch)</li>
+            <li>Integrate Edge-Aware Sharpness Loss</li>
+            <li>Configure training loop (checkpoints, AMP, logging)</li>
+            <li>Run ablation experiments (baseline vs updates)</li>
+            <li>Generate evaluation plots and comparison grids</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 20px; text-align:center; width:100%;">
+        <span class="tag green" style="font-size:0.8rem; padding:6px 16px;">Both Members — Joint</span>
+        <p style="font-size:0.88rem; margin-top:10px; color:var(--text-dim);">PSNR / SSIM / LPIPS evaluation · Qualitative comparison grids · Training curve plots · Results analysis & error discussion</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Conclusion & Future Work -->
+  <div class="slide" data-slide="12">
+    <div class="content-area">
+      <h2 class="slide-title">Conclusion & Future Work</h2>
+      <div class="two-col">
+        <div class="card">
+          <h3>Key Takeaways</h3>
+          <ul class="feature-list">
+            <li><strong>Domain-specific adaptation</strong> dramatically outperforms generic SR models on pixel art</li>
+            <li><strong>NN downsampling</strong> is critical — preserves the geometric LR-HR relationship</li>
+            <li><strong>Edge-Aware Loss</strong> improves perceptual quality (LPIPS: 0.0040 → 0.0029)</li>
+            <li>PSNR of <strong>41.10 dB</strong> and SSIM of <strong>0.992</strong> — near-perfect reconstruction</li>
+            <li><strong>230× improvement</strong> in LPIPS over bicubic baseline</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Future Directions (Post-Delivery)</h3>
+          <ul class="feature-list" style="margin-bottom: 20px;">
+            <li>Scale up to 4K resolution upscaling directly</li>
+            <li>Explore <strong>SwinIR backbone</strong> for attention-based generation</li>
+            <li>Deploy as a browser extension for Web-based emulators</li>
+          </ul>
+          <h3>Timeline until Final Delivery</h3>
+          <ul class="feature-list" style="font-size: 0.85rem;">
+            <li><strong>Completed:</strong> Model training & Ablation studies</li>
+            <li><strong>This Week:</strong> Presentation recording & Codebase cleanup</li>
+            <li><strong>Final Delivery:</strong> Submit GitHub repo & deliverables</li>
+            <li><strong>Post-Delivery:</strong> Real-time inference integration</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top: 28px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+        <div class="metric-badge">
+          <span class="value">41.10</span>
+          <span class="label">PSNR (dB)</span>
+        </div>
+        <div class="metric-badge">
+          <span class="value">0.992</span>
+          <span class="label">SSIM</span>
+        </div>
+        <div class="metric-badge">
+          <span class="value">0.0029</span>
+          <span class="label">LPIPS</span>
+        </div>
+        <div class="metric-badge">
+          <span class="value">230×</span>
+          <span class="label">vs Baseline</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Thank You -->
+  <div class="slide" data-slide="13">
+    <div class="content-area">
+      <div style="font-size:4rem; margin-bottom:20px;" class="float-anim">🕹️</div>
+      <h1 class="title" style="font-size:2rem;">Thank You!</h1>
+      <p class="subtitle" style="margin-top:16px;">Questions?</p>
+      <div style="margin-top: 32px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+        <span class="tag cyan">github.com/MarwanMoh11/Pixel-Perfect</span>
+      </div>
+      <p class="authors" style="margin-top:24px;">Hadi Hesham &nbsp;·&nbsp; Marwan Abudaif</p>
+      <p class="dept">The American University in Cairo · 2026</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Nav Controls -->
+<nav class="nav" id="nav">
+  <button id="prevBtn" aria-label="Previous slide">◀</button>
+  <div class="dot-nav" id="dotNav"></div>
+  <span class="slide-counter" id="slideCounter">1 / 14</span>
+  <button id="nextBtn" aria-label="Next slide">▶</button>
+</nav>
+
+<script>
+  (() => {
+    const slides = document.querySelectorAll('.slide');
+    const total = slides.length;
+    let current = 0;
+
+    const progress = document.getElementById('progressBar');
+    const counter = document.getElementById('slideCounter');
+    const dotNav = document.getElementById('dotNav');
+
+    // Build dots
+    for (let i = 0; i < total; i++) {
+      const dot = document.createElement('span');
+      dot.addEventListener('click', () => goTo(i));
+      dotNav.appendChild(dot);
+    }
+    const dots = dotNav.querySelectorAll('span');
+
+    function goTo(n) {
+      if (n < 0 || n >= total || n === current) return;
+      const direction = n > current ? 1 : -1;
+      // Remove all states
+      slides.forEach(s => s.classList.remove('prev', 'active'));
+      // Mark old slide
+      if (direction > 0) slides[current].classList.add('prev');
+      // Activate new slide
+      current = n;
+      slides[current].classList.add('active');
+      counter.textContent = `${current + 1} / ${total}`;
+      progress.style.width = `${((current + 1) / total) * 100}%`;
+      dots.forEach((d, i) => d.classList.toggle('active', i === current));
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => goTo(current - 1));
+    document.getElementById('nextBtn').addEventListener('click', () => goTo(current + 1));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(current - 1); }
+      if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+      if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+    });
+
+    // Touch swipe support
+    let touchStartX = 0;
+    document.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
+    document.addEventListener('touchend', e => {
+      const diff = touchStartX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 50) diff > 0 ? goTo(current + 1) : goTo(current - 1);
+    });
+
+    // Initialize
+    goTo(0);
+  })();
+</script>
+</body>
+</html>

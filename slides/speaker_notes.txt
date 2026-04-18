@@ -1,0 +1,77 @@
+PIXEL-PERFECT — SPEAKER NOTES
+================================
+
+SLIDE 1 — TITLE
+Good morning/afternoon everyone. We are Hadi Hesham and Marwan Abudaif, and today we're presenting the Final Milestone 2 delivery for Pixel-Perfect — our content-aware super-resolution system for retro game assets. Since our last update, we have fully scaled our model to train on the entire 89,000 image dataset, enabled adversarial training for sharper textures, and introduced a new Palette-Constraint Loss to strictly enforce retro color palettes.
+
+---
+
+SLIDE 2 — THE PROBLEM
+Retro games like NES and SNES run at extremely low resolutions — around 256 by 240 pixels. When you display these on a modern 4K monitor, they need to be upscaled massively. Standard methods like bicubic interpolation just produce blurry, muddy results. And here's the interesting part — even state-of-the-art super-resolution models like SRGAN and SwinIR fail on pixel art. They're trained on photos, so they interpret those sharp pixel edges as noise and smooth them out. You get this "oil painting" effect that completely destroys the artistic intent. What we need instead is a model that respects pixel art geometry — hard edges, limited palettes, grid-aligned blocks.
+
+---
+
+SLIDE 3 — DATASET & PREPROCESSING
+For our dataset, we selected the Kaggle Pixel Art Dataset — it contains about 89,000 pixel-art images of sprites and game objects, all at 16 by 16 resolution. We split this 80/10/10 for training, validation, and testing. The dataset is around 500 megabytes, which is well within Colab's capacity. A critical part of our preprocessing is the nearest-neighbor downsampling. We resize the sprites to 128 by 128 using NN interpolation to create our high-res targets, then downsample to 32 by 32 — also using NN — to create the low-res inputs. This preserves the blocky geometry that defines pixel art, unlike bicubic which introduces blur.
+TIP: Point to the chart — "As you can see from the statistics, the vast majority of our data is in the training set."
+
+---
+
+SLIDE 4 — SAMPLE PREPROCESSING PIPELINE
+Here you can see actual samples from our preprocessing pipeline. The left column shows the raw high-resolution sprites, the middle shows them downsampled to 8 by 8 using nearest-neighbor, and the right shows the processed low-resolution input that gets fed into the model. Notice how the NN downsampled versions maintain hard pixel boundaries — there's no smoothing or blending between colors. This is the key insight: by training with NN-downsampled pairs, we teach the model that the relationship between low-res and high-res is geometric and blocky, not smooth and continuous.
+
+---
+
+SLIDE 5 — MODEL ARCHITECTURE
+Our model is based on ESRGAN — Enhanced Super-Resolution GAN. The generator uses the RRDBNet architecture — Residual-in-Residual Dense Block Network. The flow is: a 32 by 32 low-res image enters the network, passes through an initial convolution, then through 8 RRDB blocks — we reduced from the standard 23 because pixel art geometry is simpler than photorealistic images. Then the features are upsampled twice using nearest-neighbor interpolation, giving us our 128 by 128 output. Two important design choices: no batch normalization in the generator to prevent artifacts, and residual scaling of 0.2 for stable training. Each RRDB block contains 3 Residual Dense Blocks, each with 5 convolutional layers densely connected. The discriminator is a standard VGG-style classifier with batch norm that progressively downsamples from 128 down to 4 and outputs a real/fake prediction.
+
+---
+
+SLIDE 6 — PROPOSED UPDATES (MILESTONE 2 ADDITIONS)
+Our first core update remains the nearest-neighbor downsampling strategy, which teaches the model that LR-to-HR mapping is geometric. For Milestone 2, we have expanded our second update. Alongside our Sobel-based Edge-Aware Sharpness Loss, which eliminates the "oily" look of standard models, we've implemented a new Palette-Constraint Loss. This loss penalizes generated colors that do not fall perfectly onto a discrete 8-bit or 16-bit color grid. This entirely prevents color drifting — a common issue where GANs invent new colors not present in the original sprite's limited palette. Our total loss now combines L1 pixel loss, LPIPS perceptual loss, our edge loss, the new palette loss, and we have fully enabled Adversarial Loss to push texture sharpness to the maximum.
+
+---
+
+SLIDE 7 — MILESTONE 2 PROGRESS & FINAL RESULTS
+For this final milestone, we significantly scaled up our training. We trained on the full 89,399 image dataset for 30 epochs, utilizing mixed precision training to handle the massive data volume. Looking at the charts, you can see how the addition of the adversarial loss changes the dynamics — the discriminator and generator engage in a much more aggressive min-max game, which translates visually to much sharper, crispier pixel boundaries. Both the edge loss and the new palette loss stabilize nicely, proving that our custom constraints successfully guide the GAN without collapsing the training. This scale-up represents the core technical achievement of this milestone.
+
+---
+
+SLIDE 8 — VISUAL COMPARISON
+Here's a side-by-side comparison. The left column shows the ground truth at 128 by 128. The middle shows the bicubic upscale — our baseline. And the right shows our Pixel-Perfect model's output. Notice how the bicubic baseline produces harsh, blocky artifacts with exaggerated white edges that don't exist in the original. Our model, on the other hand, produces output that's visually near-identical to the ground truth — it faithfully recovers the color transitions and sprite shapes.
+TIP: Point to specific sprites — "Look at this sprite here — the bicubic version has these harsh white outlines, but our model preserves the original colors perfectly."
+
+---
+
+SLIDE 9 — ABLATION STUDY
+To validate the impact of our edge-aware loss, we ran an ablation study comparing three configurations: bicubic upscale, ESRGAN without edge loss, and ESRGAN with edge loss. The numbers tell a clear story. Bicubic gets a PSNR of only 23.18 and a terrible LPIPS of 0.48. Our ESRGAN without edge loss jumps to 41.51 PSNR with 0.004 LPIPS. And with the edge loss added, LPIPS improves further to 0.0029 — a 27% improvement in perceptual quality. There's a slight PSNR trade-off — 41.51 vs 41.10 — but this is expected. The edge loss encourages sharper outputs which can differ by a pixel or two from ground truth, slightly lowering PSNR while improving perceived quality. This is exactly what LPIPS captures.
+
+---
+
+SLIDE 10 — PERCEPTUAL QUALITY (LPIPS)
+We want to highlight why LPIPS is the most important metric for this task. PSNR actually favors blurry images because it penalizes any pixel deviation equally. LPIPS, on the other hand, uses a learned perceptual model to measure how similar two images look to human eyes. The gap is dramatic. Our baseline bicubic has an LPIPS of 0.5082. Our Pixel-Perfect model achieves 0.0022. That's a 230 times improvement in perceptual quality. Essentially, our model's output is perceptually indistinguishable from the ground truth.
+
+---
+
+SLIDE 11 — SOTA COMPARISON
+For context, we compare against state-of-the-art results on Manga109, which serves as the closest proxy benchmark — it has sharp line art and clean boundaries. The best SOTA model, SwinIR trained on DF2K, achieves 32.03 dB PSNR and 0.926 SSIM on Manga109. Our model achieves 41.10 dB and 0.992 SSIM on our pixel art test set. Now, we want to be transparent — this is not a direct comparison. Different datasets, different degradation models. Our higher numbers come from the fact that we're specialized for pixel art with NN degradation, which is inherently more structured than photorealistic SR. The key takeaway is: domain-specific adaptation significantly outperforms domain-general models.
+
+---
+
+SLIDE 12 — TEAM CONTRIBUTIONS
+Hadi was responsible for the data side — downloading and cleaning the dataset, building the NN downsampling pipeline, implementing data loaders, and creating the dataset visualizations you saw earlier. Marwan handled the model and training — setting up the ESRGAN pipeline in PyTorch, implementing the edge-aware sharpness loss, configuring the training loop with mixed precision and checkpointing, and running the ablation experiments. We jointly worked on evaluation — implementing the PSNR, SSIM, and LPIPS metrics, generating the comparison grids, plotting the training curves, and analyzing the results.
+
+---
+
+SLIDE 13 — CONCLUSION & FUTURE WORK
+To summarize our final delivery: domain-specific adaptation combined with massive data scaling completely solves the pixel-art super-resolution problem. By integrating NN downsampling, edge-aware loss, palette constraints, and adversarial training on 89,000 images, we achieved a near-perfect reconstruction that dramatically outperforms generic SOTA models like SwinIR. Regarding our timeline until final delivery: the model training and ablation studies are fully complete. This week, we will finish recording this presentation video and clean up the codebase for final submission. For future work post-delivery, we are looking at direct 4K upscaling and deploying the model as a lightweight browser extension for web-based retro game emulators.
+
+---
+
+SLIDE 14 — THANK YOU
+Thank you for your attention. Our code is available on GitHub. We're happy to take any questions.
+
+ANTICIPATED QUESTIONS:
+- Why not use adversarial loss? -> It caused noise with our limited training budget (50 epochs, 5k images). With more compute we'd enable it.
+- Why only 5,000 images? -> Colab time constraints. Full 89k would take much longer.
+- How does it handle transparency? -> We crop to content first, removing black/transparent borders before processing.

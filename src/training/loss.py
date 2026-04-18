@@ -47,6 +47,31 @@ class EdgeAwareSharpnessLoss(nn.Module):
         
         return penalty.mean()
 
+class PaletteConstraintLoss(nn.Module):
+    """
+    Forces the generated colors to snap to a limited discrete color palette,
+    which is characteristic of retro games (e.g., 8-bit or 16-bit color depth).
+    """
+    def __init__(self, color_depth=32.0):
+        super(PaletteConstraintLoss, self).__init__()
+        self.color_depth = color_depth
+
+    def forward(self, hr_pred: torch.Tensor) -> torch.Tensor:
+        """
+        Penalize colors that do not fall exactly on the discretized color grid.
+        Args:
+            hr_pred (Tensor): Generated image in [0, 1].
+        """
+        # Scale to color grid
+        scaled = hr_pred * self.color_depth
+        
+        # Distance to the nearest valid color grid point
+        # This pushes the network to output flat, exact colors instead of continuous gradients.
+        distance_to_grid = torch.abs(scaled - torch.round(scaled))
+        
+        return distance_to_grid.mean()
+
+
 class GeneratorLoss(nn.Module):
     """
     Combined loss for the ESRGAN Generator.
@@ -56,18 +81,20 @@ class GeneratorLoss(nn.Module):
     3. Adversarial Loss (BCE with Logits for Discriminator output)
     4. Custom Edge-Aware Sharpness Loss (for Pixel Art constraints)
     """
-    def __init__(self, pixel_weight=1e-2, perceptual_weight=1.0, adv_weight=5e-3, edge_weight=1e-1):
+    def __init__(self, pixel_weight=1e-2, perceptual_weight=1.0, adv_weight=5e-3, edge_weight=1e-1, palette_weight=5e-2):
         super(GeneratorLoss, self).__init__()
         self.pixel_weight = pixel_weight
         self.perceptual_weight = perceptual_weight
         self.adv_weight = adv_weight
         self.edge_weight = edge_weight
+        self.palette_weight = palette_weight
         
         # Learned Perceptual Image Patch Similarity (LPIPS) loaded from requirements
         # Used because standard pixel loss (L1/MSE) creates blurry images
         self.perceptual_loss = lpips.LPIPS(net='vgg')
         
         self.edge_loss = EdgeAwareSharpnessLoss()
+        self.palette_loss = PaletteConstraintLoss()
 
     def forward(self, hr_pred: torch.Tensor, hr_target: torch.Tensor, discriminator_pred: torch.Tensor) -> tuple:
         """
@@ -97,14 +124,18 @@ class GeneratorLoss(nn.Module):
         # 4. Custom Pixel-Art Edge-Aware Loss
         edge_loss = self.edge_loss(hr_pred) * self.edge_weight
         
+        # 5. Palette Constraint Loss
+        palette_loss = self.palette_loss(hr_pred) * self.palette_weight
+        
         # Sum total
-        total_loss = pixel_loss + perc_loss + adv_loss + edge_loss
+        total_loss = pixel_loss + perc_loss + adv_loss + edge_loss + palette_loss
         
         loss_dict = {
             "l1": pixel_loss.item(),
             "perceptual": perc_loss.item(),
             "adversarial": adv_loss.item(),
             "edge": edge_loss.item(),
+            "palette": palette_loss.item(),
             "total": total_loss.item()
         }
         

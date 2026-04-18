@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Speaker Notes — Pixel-Perfect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0f0f1a;
+      --card: #1a1a2e;
+      --border: #2a2a44;
+      --accent: #00e5ff;
+      --accent2: #c084fc;
+      --text: #e8e8f0;
+      --dim: #8888aa;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      padding-bottom: 80px;
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      text-align: center;
+      color: var(--accent);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    .header-sub {
+      text-align: center;
+      color: var(--dim);
+      font-size: 0.8rem;
+      margin-bottom: 20px;
+    }
+
+    .slide-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+
+    .slide-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(0, 229, 255, 0.06);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .slide-header:active {
+      background: rgba(0, 229, 255, 0.12);
+    }
+
+    .slide-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(0, 229, 255, 0.15);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .slide-name {
+      font-weight: 600;
+      font-size: 0.92rem;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .slide-toggle {
+      color: var(--dim);
+      font-size: 1.2rem;
+      transition: transform 0.2s;
+    }
+    .slide-card.open .slide-toggle {
+      transform: rotate(180deg);
+    }
+
+    .slide-body {
+      padding: 0 16px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+    .slide-card.open .slide-body {
+      padding: 14px 16px 16px;
+      max-height: 2000px;
+    }
+
+    .note-section {
+      margin-bottom: 12px;
+    }
+    .note-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .note-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent2);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .note-text {
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: var(--text);
+    }
+
+    .note-text strong {
+      color: var(--accent);
+    }
+
+    .note-text em {
+      color: var(--accent2);
+      font-style: normal;
+      font-weight: 500;
+    }
+
+    .bullet {
+      padding-left: 14px;
+      position: relative;
+      margin-bottom: 4px;
+    }
+    .bullet::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 10px 0;
+    }
+
+    .tip {
+      background: rgba(192, 132, 252, 0.08);
+      border-left: 3px solid var(--accent2);
+      padding: 8px 12px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.82rem;
+      color: var(--dim);
+      margin-top: 8px;
+    }
+
+    /* Fixed bottom nav */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: rgba(15, 15, 26, 0.95);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      z-index: 100;
+    }
+    .bottom-nav button {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .bottom-nav button:active {
+      background: rgba(0, 229, 255, 0.1);
+      border-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎮 Speaker Notes</h1>
+<p class="header-sub">Tap a slide to expand · Pixel-Perfect Presentation</p>
+
+<!-- Slide 1 -->
+<div class="slide-card open">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">1</div>
+    <div class="slide-name">Title Slide</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Opening</div>
+      <div class="note-text">
+        "Good morning/afternoon everyone. We are Hadi Hesham and Marwan Abudaif, and today we're presenting <strong>Pixel-Perfect</strong> — a content-aware super-resolution system designed specifically for retro video game assets."
+      </div>
+    </div>
+    <div class="note-section">
+      <div class="note-label">Context</div>
+      <div class="note-text">
+        "Our project uses an enhanced version of ESRGAN with two key modifications — <strong>nearest-neighbor downsampling</strong> and a custom <strong>edge-aware sharpness loss</strong> — to achieve a <strong>4× upscale</strong> of pixel art while preserving its unique visual style."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 2 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">2</div>
+    <div class="slide-name">The Problem</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "Retro games like NES and SNES run at extremely low resolutions — around <strong>256 by 240 pixels</strong>. When you display these on a modern 4K monitor, they need to be upscaled massively."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "Standard methods like <strong>bicubic interpolation</strong> just produce blurry, muddy results. And here's the interesting part — even state-of-the-art super-resolution models like SRGAN and SwinIR fail on pixel art. They're trained on photos, so they interpret those sharp pixel edges as noise and smooth them out. You get this <em>'oil painting' effect</em> that completely destroys the artistic intent."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "What we need instead is a model that <strong>respects pixel art geometry</strong> — hard edges, limited palettes, grid-aligned blocks. That's what Pixel-Perfect is designed to do."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 3 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">3</div>
+    <div class="slide-name">Dataset & Preprocessing</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "For our dataset, we selected the <strong>Kaggle Pixel Art Dataset</strong> — it contains about <strong>89,000 pixel-art images</strong> of sprites and game objects, all at 16 by 16 resolution."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "We split this <strong>80/10/10</strong> for training, validation, and testing. The dataset is around 500 megabytes, which is well within Colab's capacity."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "A critical part of our preprocessing is the <strong>nearest-neighbor downsampling</strong>. We resize the sprites to 128 by 128 using NN interpolation to create our high-res targets, then downsample to 32 by 32 — also using NN — to create the low-res inputs. This is important because it <strong>preserves the blocky geometry</strong> that defines pixel art, unlike bicubic which introduces blur."
+      </div>
+    </div>
+    <div class="tip">💡 Point to the chart: "As you can see from the statistics, the vast majority of our data is in the training set."</div>
+  </div>
+</div>
+
+<!-- Slide 4 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">4</div>
+    <div class="slide-name">Sample Preprocessing Pipeline</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "Here you can see actual samples from our preprocessing pipeline. The left column shows the <strong>raw high-resolution sprites</strong>, the middle shows them <strong>downsampled to 8 by 8 using nearest-neighbor</strong>, and the right shows the <strong>processed low-resolution input</strong> that gets fed into the model."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "Notice how the NN downsampled versions maintain <strong>hard pixel boundaries</strong> — there's no smoothing or blending between colors. This is the key insight: by training with NN-downsampled pairs, we teach the model that the relationship between low-res and high-res is <em>geometric and blocky</em>, not smooth and continuous."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 5 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">5</div>
+    <div class="slide-name">Model Architecture</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "Our model is based on <strong>ESRGAN</strong> — Enhanced Super-Resolution GAN. The generator uses the <strong>RRDBNet</strong> architecture — Residual-in-Residual Dense Block Network."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "The flow is: a 32 by 32 low-res image enters the network, passes through an initial convolution, then through <strong>8 RRDB blocks</strong> — we reduced from the standard 23 because pixel art geometry is simpler than photorealistic images. Then the features are upsampled twice using <strong>nearest-neighbor interpolation</strong>, giving us our 128 by 128 output."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "Two important design choices: <strong>no batch normalization</strong> in the generator to prevent artifacts, and <strong>residual scaling of 0.2</strong> for stable training. Each RRDB block contains 3 Residual Dense Blocks, each with 5 convolutional layers densely connected."
+      </div>
+    </div>
+    <div class="note-section">
+      <div class="note-text">
+        "The discriminator is a standard <strong>VGG-style</strong> classifier with batch norm that progressively downsamples from 128 down to 4 and outputs a real/fake prediction."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 6 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">6</div>
+    <div class="slide-name">Proposed Updates</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Update 1</div>
+      <div class="note-text">
+        "Our <strong>first update</strong> is the nearest-neighbor downsampling strategy we discussed. Standard SR models train on bicubic-downsampled images which are inherently blurry. By switching to NN downsampling, we teach the model that the LR-to-HR mapping is <em>geometric</em>, not smooth."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-label">Update 2</div>
+      <div class="note-text">
+        "Our <strong>second update</strong> is the Edge-Aware Sharpness Loss. Standard perceptual loss using VGG encourages natural-looking textures like grass or skin. But for pixel art, we want the <em>opposite</em> — hard, binary edges."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "We compute <strong>Sobel gradients</strong> on the generated image. If the gradient magnitude falls in a middle range — indicating a <em>smooth transition</em> like anti-aliasing — we apply a penalty. This forces the network to output either flat regions or hard edges, nothing in between."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "Our total loss combines <strong>L1 pixel loss</strong> weighted at 1.0, <strong>LPIPS perceptual loss</strong> at 0.1, and our <strong>edge-aware loss</strong> at 0.5. We kept the adversarial weight at zero because it introduced noise with our limited training budget."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 7 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">7</div>
+    <div class="slide-name">Training Results</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "We trained for <strong>50 epochs</strong> with a batch size of 64 using <strong>mixed precision training</strong> for efficiency. We used Adam optimizer with a learning rate of 1e-4."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "Looking at the left chart — the <strong>generator loss</strong> in green converges very quickly, stabilizing after around epoch 10. The <strong>discriminator loss</strong> in red shows interesting oscillatory behavior — these spikes represent the discriminator re-adapting as the generator improves, which is normal in GAN training."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "The right chart breaks down the generator's loss components. <strong>L1 pixel loss</strong> dominates early training. <strong>LPIPS perceptual loss</strong> provides structural guidance. And notably, the <strong>edge-aware sharpness loss</strong> stays near zero throughout — meaning the model quickly learns to avoid anti-aliased edges."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 8 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">8</div>
+    <div class="slide-name">Visual Comparison</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "Here's a side-by-side comparison. The left column shows the <strong>ground truth</strong> at 128 by 128. The middle shows the <strong>bicubic upscale</strong> — our baseline. And the right shows our <strong>Pixel-Perfect model's output</strong>."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "Notice how the bicubic baseline produces <strong>harsh, blocky artifacts</strong> with exaggerated white edges that don't exist in the original. Our model, on the other hand, produces output that's <strong>visually near-identical</strong> to the ground truth — it faithfully recovers the color transitions and sprite shapes."
+      </div>
+    </div>
+    <div class="tip">💡 Point to specific sprites: "Look at this sprite here — the bicubic version has these harsh white outlines, but our model preserves the original colors perfectly."</div>
+  </div>
+</div>
+
+<!-- Slide 9 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">9</div>
+    <div class="slide-name">Ablation Study</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "To validate the impact of our edge-aware loss, we ran an <strong>ablation study</strong> comparing three configurations: bicubic upscale, ESRGAN without edge loss, and ESRGAN with edge loss."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "The numbers tell a clear story. <strong>Bicubic</strong> gets a PSNR of only 23.18 and a terrible LPIPS of 0.48. Our <strong>ESRGAN without edge loss</strong> jumps to 41.51 PSNR with 0.004 LPIPS. And with the <strong>edge loss added</strong>, LPIPS improves further to <strong>0.0029</strong> — a 27% improvement in perceptual quality."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "There's a slight PSNR trade-off — 41.51 vs 41.10 — but this is expected. The edge loss encourages sharper outputs which can differ by a pixel or two from ground truth, slightly lowering PSNR while <em>improving perceived quality</em>. This is exactly what LPIPS captures."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 10 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">10</div>
+    <div class="slide-name">Perceptual Quality — LPIPS</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "We want to highlight why <strong>LPIPS</strong> is the most important metric for this task. PSNR actually <em>favors blurry images</em> because it penalizes any pixel deviation equally. LPIPS, on the other hand, uses a learned perceptual model to measure how similar two images look <em>to human eyes</em>."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "The gap is dramatic. Our baseline bicubic has an LPIPS of <strong>0.5082</strong>. Our Pixel-Perfect model achieves <strong>0.0022</strong>. That's a <strong>230 times improvement</strong> in perceptual quality. Essentially, our model's output is perceptually <em>indistinguishable</em> from the ground truth."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 11 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">11</div>
+    <div class="slide-name">SOTA Comparison</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "For context, we compare against state-of-the-art results on <strong>Manga109</strong>, which serves as the closest proxy benchmark — it has sharp line art and clean boundaries."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "The best SOTA model, SwinIR trained on DF2K, achieves <strong>32.03 dB PSNR</strong> and <strong>0.926 SSIM</strong> on Manga109. Our model achieves <strong>41.10 dB</strong> and <strong>0.992 SSIM</strong> on our pixel art test set."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-label">Important Caveat</div>
+      <div class="note-text">
+        "Now, we want to be transparent — this is <strong>not a direct comparison</strong>. Different datasets, different degradation models. Our higher numbers come from the fact that we're specialized for pixel art with NN degradation, which is inherently more structured than photorealistic SR. The key takeaway is: <strong>domain-specific adaptation</strong> significantly outperforms domain-general models."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 12 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">12</div>
+    <div class="slide-name">Team Contributions</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Say This</div>
+      <div class="note-text">
+        "<strong>Hadi</strong> was responsible for the data side — downloading and cleaning the dataset, building the NN downsampling pipeline, implementing data loaders, and creating the dataset visualizations you saw earlier."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "<strong>Marwan</strong> handled the model and training — setting up the ESRGAN pipeline in PyTorch, implementing the edge-aware sharpness loss, configuring the training loop with mixed precision and checkpointing, and running the ablation experiments."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-text">
+        "We <strong>jointly</strong> worked on evaluation — implementing the PSNR, SSIM, and LPIPS metrics, generating the comparison grids, plotting the training curves, and analyzing the results."
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 13 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">13</div>
+    <div class="slide-name">Conclusion & Future Work</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Conclusion</div>
+      <div class="note-text">
+        "To summarize our key findings: <strong>domain-specific adaptation matters</strong>. By simply changing the downsampling strategy to nearest-neighbor and adding an edge-aware loss, we dramatically outperform generic upscaling. We achieved a PSNR of <strong>41.10 dB</strong>, SSIM of <strong>0.992</strong>, and LPIPS of <strong>0.0029</strong> — representing a 230x improvement over the bicubic baseline."
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="note-section">
+      <div class="note-label">Future Work</div>
+      <div class="note-text">
+        "For future work, we'd like to:
+        <div class="bullet">Enable <strong>adversarial training</strong> with longer training to get even sharper textures</div>
+        <div class="bullet">Add a <strong>palette-constraint loss</strong> to enforce the limited color palettes typical of retro games</div>
+        <div class="bullet">Train on the <strong>full 89,000 images</strong> instead of our 5,000 subset</div>
+        <div class="bullet">Explore using a <strong>SwinIR transformer backbone</strong> instead of the convolutional RRDB</div>
+        <div class="bullet">And work toward <strong>real-time inference</strong> for integration into actual game emulators</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 14 -->
+<div class="slide-card">
+  <div class="slide-header" onclick="toggleSlide(this)">
+    <div class="slide-number">14</div>
+    <div class="slide-name">Thank You</div>
+    <div class="slide-toggle">▾</div>
+  </div>
+  <div class="slide-body">
+    <div class="note-section">
+      <div class="note-label">Closing</div>
+      <div class="note-text">
+        "Thank you for your attention. Our code is available on GitHub. We're happy to take any questions."
+      </div>
+    </div>
+    <div class="tip">💡 Be ready for questions about: Why not use adversarial loss? (causes noise with limited training) · Why only 5,000 images? (Colab time constraints) · How does it handle sprites with transparency? (we crop to content first)</div>
+  </div>
+</div>
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <button onclick="collapseAll()">Collapse All</button>
+  <button onclick="expandAll()">Expand All</button>
+</div>
+
+<script>
+  function toggleSlide(header) {
+    const card = header.parentElement;
+    card.classList.toggle('open');
+  }
+
+  function collapseAll() {
+    document.querySelectorAll('.slide-card').forEach(c => c.classList.remove('open'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function expandAll() {
+    document.querySelectorAll('.slide-card').forEach(c => c.classList.add('open'));
+  }
+</script>
+
+</body>
+</html>

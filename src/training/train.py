@@ -18,7 +18,7 @@ def train():
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
     
-    epochs = 50
+    epochs = 30
     batch_size = 64  # Increased from 16 to 64 to fully utilize 15GB Colab GPU
     lr_G = 1e-4
     lr_D = 1e-4
@@ -43,8 +43,9 @@ def train():
     criterion_G = GeneratorLoss(
         pixel_weight=1.0,        # Strong L1 for pixel-accurate reconstruction
         perceptual_weight=0.1,   # Light LPIPS for structural coherence
-        adv_weight=0.0,          # Adversarial OFF (causes noise with limited training)
-        edge_weight=0.5          # Custom Sobel edge penalty for sharp pixel borders
+        adv_weight=5e-3,         # Adversarial ENABLED for Milestone 2 (Sharper textures)
+        edge_weight=0.5,         # Custom Sobel edge penalty for sharp pixel borders
+        palette_weight=0.05      # Milestone 2: Enforce discrete color palettes
     ).to(device)
     
     criterion_D = nn.BCEWithLogitsLoss()
@@ -57,7 +58,7 @@ def train():
     log_path = os.path.join(checkpoint_dir, 'training_log.csv')
     with open(log_path, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['epoch', 'G_total', 'G_l1', 'G_perceptual', 'G_edge', 'D_loss'])
+        writer.writerow(['epoch', 'G_total', 'G_l1', 'G_perceptual', 'G_edge', 'G_palette', 'G_adv', 'D_loss'])
 
     # 7. Training Loop
     print("Starting Training Loop...")
@@ -66,7 +67,7 @@ def train():
         discriminator.train()
         
         # Accumulators for epoch-average losses
-        epoch_G_total, epoch_G_l1, epoch_G_perc, epoch_G_edge, epoch_D = 0.0, 0.0, 0.0, 0.0, 0.0
+        epoch_G_total, epoch_G_l1, epoch_G_perc, epoch_G_edge, epoch_G_pal, epoch_G_adv, epoch_D = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         num_batches = 0
         
         loop = tqdm(dataloader, leave=True)
@@ -109,6 +110,8 @@ def train():
             epoch_G_l1 += loss_dict['l1']
             epoch_G_perc += loss_dict['perceptual']
             epoch_G_edge += loss_dict['edge']
+            epoch_G_pal += loss_dict['palette']
+            epoch_G_adv += loss_dict['adversarial']
             epoch_D += loss_D.item()
             num_batches += 1
 
@@ -116,7 +119,8 @@ def train():
             loop.set_postfix(
                 D_loss=loss_D.item(), 
                 G_total=loss_dict['total'],
-                G_edge=loss_dict['edge']
+                G_edge=loss_dict['edge'],
+                G_pal=loss_dict['palette']
             )
 
         # Log epoch averages to CSV
@@ -128,6 +132,8 @@ def train():
                 epoch_G_l1 / num_batches,
                 epoch_G_perc / num_batches,
                 epoch_G_edge / num_batches,
+                epoch_G_pal / num_batches,
+                epoch_G_adv / num_batches,
                 epoch_D / num_batches
             ])
 

@@ -29,9 +29,9 @@ class PixelArtDataset(Dataset):
                     if file.lower().endswith(('.png', '.jpg', '.jpeg')):
                         self.image_files.append(os.path.join(root, file))
         
-        # Limit to 5000 for training speed
+        # Use the full dataset for Milestone 2
         random.shuffle(self.image_files)
-        self.image_files = self.image_files[:5000]
+        # self.image_files = self.image_files[:5000] # Removed limit to train on all ~89k images
                     
         self.to_tensor = transforms.ToTensor()
 
