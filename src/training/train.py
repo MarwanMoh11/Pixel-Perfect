@@ -51,8 +51,8 @@ def train():
     criterion_D = nn.BCEWithLogitsLoss()
 
     # PyTorch AMP (Automatic Mixed Precision) Scalers for 2-3x Speedup & 50% less VRAM
-    scaler_G = torch.cuda.amp.GradScaler()
-    scaler_D = torch.cuda.amp.GradScaler()
+    scaler_G = torch.amp.GradScaler('cuda')
+    scaler_D = torch.amp.GradScaler('cuda')
 
     # 6. Loss log CSV
     log_path = os.path.join(checkpoint_dir, 'training_log.csv')
