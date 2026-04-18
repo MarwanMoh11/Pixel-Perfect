@@ -76,10 +76,15 @@ def train():
         ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
         generator.load_state_dict(ckpt['generator'])
         discriminator.load_state_dict(ckpt['discriminator'])
-        opt_G.load_state_dict(ckpt['opt_G'])
-        opt_D.load_state_dict(ckpt['opt_D'])
-        scaler_G.load_state_dict(ckpt['scaler_G'])
-        scaler_D.load_state_dict(ckpt['scaler_D'])
+        # Optimizer/scaler state may be missing from old-format checkpoints — that's OK
+        if 'opt_G' in ckpt:
+            opt_G.load_state_dict(ckpt['opt_G'])
+            opt_D.load_state_dict(ckpt['opt_D'])
+            scaler_G.load_state_dict(ckpt['scaler_G'])
+            scaler_D.load_state_dict(ckpt['scaler_D'])
+            print("=> Restored full training state (models + optimizers + scalers)")
+        else:
+            print("=> Restored model weights only (optimizers will re-initialize)")
         start_epoch = resumed_epoch + 1
         print(f"=> Will resume training from epoch {start_epoch}")
     else:
