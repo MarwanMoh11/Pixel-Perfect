@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel-Perfect Premium Poster</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* =========== BASE POSTER CANVAS =========== */
+        html, body {
+            margin: 0; padding: 0;
+            background: #222;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        
+        .poster {
+            position: relative;
+            width: 1600px;
+            height: 1131px;
+            background-color: #0a0a12;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 240, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(192, 132, 252, 0.08) 0%, transparent 50%),
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
+            margin: 10px auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            padding: 25px 35px 20px 35px;
+            box-sizing: border-box;
+            color: #e8e8f0;
+            overflow: hidden;
+        }
+
+        /* =========== HEADER =========== */
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(0, 240, 255, 0.3);
+            flex-shrink: 0;
+        }
+        .header h1 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 26px;
+            background: linear-gradient(135deg, #00f0ff, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 8px 0;
+            line-height: 1.4;
+        }
+        .header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #e8e8f0;
+            margin: 0 0 4px 0;
+            letter-spacing: 1px;
+        }
+        .header h3 {
+            font-size: 14px;
+            font-weight: 400;
+            color: #9898b0;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* =========== 3-COLUMN LAYOUT =========== */
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1.15fr 1fr;
+            gap: 22px;
+            flex: 1;
+            min-height: 0; /* Critical: allows grid to shrink */
+        }
+        
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        /* =========== SECTION CARDS =========== */
+        .section {
+            background: rgba(20, 20, 40, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 14px 18px;
+            box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.02);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 1;
+            min-height: 0;
+        }
+        
+        .section.grow {
+            flex-grow: 1;
+        }
+
+        .section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #00f0ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .section-title::before {
+            content: '>';
+            color: #c084fc;
+            margin-right: 8px;
+            font-weight: 800;
+        }
+
+        /* =========== TEXT & LISTS =========== */
+        p {
+            font-size: 13px;
+            line-height: 1.45;
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #d4d4e8;
+        }
+        ul, ol {
+            font-size: 13px;
+            line-height: 1.45;
+            padding-left: 18px;
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #d4d4e8;
+        }
+        li {
+            margin-bottom: 4px;
+        }
+        li::marker {
+            color: #00f0ff;
+        }
+        strong {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* =========== DIAGRAMS (CSS) =========== */
+        .arch-flow {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 8px 0;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .arch-box {
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid;
+            text-align: center;
+            background: rgba(10, 10, 20, 0.8);
+        }
+        .arch-box.input { color: #00f0ff; border-color: rgba(0, 240, 255, 0.4); box-shadow: 0 0 8px rgba(0, 240, 255, 0.1); }
+        .arch-box.rrdb { color: #c084fc; border-color: rgba(192, 132, 252, 0.4); box-shadow: 0 0 8px rgba(192, 132, 252, 0.1); }
+        .arch-box.loss { color: #f472b6; border-color: rgba(244, 114, 182, 0.4); box-shadow: 0 0 8px rgba(244, 114, 182, 0.1); }
+        .arch-box.output { color: #86efac; border-color: rgba(134, 239, 172, 0.4); box-shadow: 0 0 8px rgba(134, 239, 172, 0.1); }
+        .arch-arrow { color: #666; font-size: 16px; font-weight: bold; }
+
+        /* =========== IMAGES =========== */
+        .figure {
+            text-align: center;
+            margin: 6px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            min-height: 0;
+        }
+        .figure img {
+            max-width: 100%;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            object-fit: contain;
+        }
+        .figure caption {
+            display: block;
+            font-size: 11px;
+            color: #9898b0;
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        /* =========== TABLES =========== */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 8px 0;
+            font-size: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        th, td {
+            padding: 7px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        th {
+            background-color: rgba(0, 240, 255, 0.1);
+            color: #00f0ff;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background-color: rgba(255,255,255,0.02); }
+        .highlight-col {
+            background-color: rgba(192, 132, 252, 0.1);
+            font-weight: 700;
+            color: #c084fc;
+        }
+
+        /* Highlights */
+        .hl-cyan { color: #00f0ff; font-weight: 600; }
+        .hl-purple { color: #c084fc; font-weight: 600; }
+
+        /* For print */
+        @media print {
+            body { background: #0a0a12; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .poster { margin: 0; box-shadow: none; width: 100%; height: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="poster">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>PIXEL-PERFECT: Content-Aware Super-Resolution for Retro Game Assets</h1>
+            <h2>Hadi Hesham &nbsp;&bull;&nbsp; Marwan Abudaif</h2>
+            <h3>The American University in Cairo &nbsp;|&nbsp; Advanced Machine Learning &nbsp;|&nbsp; Spring 2026</h3>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+            
+            <!-- ═══════════ COLUMN 1: INTRO & DATA ═══════════ -->
+            <div class="col">
+                <div class="section">
+                    <h2 class="section-title">The Challenge</h2>
+                    <p>Retro game art relies on sharp, aliased edges and limited color palettes. Displaying these on modern 4K monitors requires massive upscaling.</p>
+                    <ul>
+                        <li><strong>Standard methods</strong> (Bicubic) produce blurry, muddy results.</li>
+                        <li><strong>SOTA models</strong> (SRGAN, SwinIR) interpret sharp pixel boundaries as "noise," creating a destructive <span class="hl-cyan">"oil painting" effect</span>.</li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Original Model</h2>
+                    <p>Standard ESRGAN focuses on photorealism using 23 RRDB blocks and sub-pixel convolution upsampling.</p>
+                    <div class="arch-flow">
+                        <div class="arch-box input">LR Image<br><small>Bicubic Down</small></div>
+                        <span class="arch-arrow">&rarr;</span>
+                        <div class="arch-box">23x RRDB<br>Trunk</div>
+                        <span class="arch-arrow">&rarr;</span>
+                        <div class="arch-box">Sub-pixel<br>Conv</div>
+                        <span class="arch-arrow">&rarr;</span>
+                        <div class="arch-box" style="color:#ef4444; border-color:rgba(239,68,68,0.4);">HR Output<br><small>(Blurry)</small></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Dataset</h2>
+                    <p>We utilized the Kaggle Pixel Art Dataset (<span class="hl-purple">89,399 images</span>). Unlike standard pipelines, we developed a geometric approach:</p>
+                    <ul>
+                        <li><strong>NN-Downsampling:</strong> LR-HR pairs created strictly via Nearest-Neighbor interpolation.</li>
+                        <li>Preserves blocky geometry, teaching the model that LR-HR mapping is <strong>geometric, not smooth</strong>.</li>
+                    </ul>
+                </div>
+                
+                <div class="section grow">
+                    <h2 class="section-title">Live Demo</h2>
+                    <p>We integrated the model into a fully playable Mario engine. A real-time hotkey <span class="hl-cyan">('T')</span> toggles between original NES graphics and our 4x ESRGAN assets to verify hit-box fidelity and visual clarity during gameplay.</p>
+                </div>
+            </div>
+
+            <!-- ═══════════ COLUMN 2: ARCHITECTURE & LOSSES ═══════════ -->
+            <div class="col">
+                <div class="section">
+                    <h2 class="section-title">Proposed Architecture</h2>
+                    <p>We modified ESRGAN into a <strong>Pixel-Aware RRDBNet</strong> with domain-specific geometric constraints.</p>
+                    <div class="arch-flow">
+                        <div class="arch-box input">LR Image<br><small>NN Down</small></div>
+                        <span class="arch-arrow">&rarr;</span>
+                        <div class="arch-box rrdb">8x RRDB<br><small>(Prevents Blur)</small></div>
+                        <span class="arch-arrow">&rarr;</span>
+                        <div class="arch-box rrdb">NN Upsample<br><small>2x → 2x</small></div>
+                        <span class="arch-arrow">&rarr;</span>
+                        <div class="arch-box output">HR Output<br><small>(Sharp Pixels)</small></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Custom Loss Functions</h2>
+                    <p>We introduced two novel losses tailored to retro assets:</p>
+                    <ul>
+                        <li><span class="hl-cyan">Edge-Aware Sharpness:</span> Sobel-based penalty that forces hard, binary edges.</li>
+                        <li><span class="hl-purple">Palette-Constraint:</span> Penalizes colors outside discrete 8-bit grids, preventing "color drifting."</li>
+                    </ul>
+                    <div class="arch-flow">
+                        <div class="arch-box loss">L1 Pixel</div>
+                        <span class="arch-arrow">+</span>
+                        <div class="arch-box loss">LPIPS</div>
+                        <span class="arch-arrow">+</span>
+                        <div class="arch-box loss">Sobel Edge</div>
+                        <span class="arch-arrow">+</span>
+                        <div class="arch-box loss">Palette</div>
+                        <span class="arch-arrow">+</span>
+                        <div class="arch-box loss">Adversarial</div>
+                    </div>
+                </div>
+
+                <div class="section grow">
+                    <h2 class="section-title">Visual Comparison</h2>
+                    <div class="figure">
+                        <img src="../slides/assets/visual_comparison_grid(5).png" alt="Visual Comparison" style="max-height: 220px;">
+                        <caption>Ground Truth vs. Bicubic Baseline vs. Pixel-Perfect (Ours). Notice the elimination of harsh white outlines and perfect color preservation.</caption>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════ COLUMN 3: RESULTS & CONCLUSION ═══════════ -->
+            <div class="col">
+                <div class="section">
+                    <h2 class="section-title">Quantitative Results</h2>
+                    <p><strong>LPIPS</strong> measures human-perceived quality — the most critical metric for this domain.</p>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>PSNR &uarr;</th>
+                                <th>SSIM &uarr;</th>
+                                <th>LPIPS &darr;</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Bicubic</td>
+                                <td>23.18</td>
+                                <td>0.8034</td>
+                                <td>0.4758</td>
+                            </tr>
+                            <tr>
+                                <td>ESRGAN (No Edge)</td>
+                                <td>41.51</td>
+                                <td>0.9923</td>
+                                <td>0.0040</td>
+                            </tr>
+                            <tr>
+                                <td style="color:#fff;">Pixel-Perfect</td>
+                                <td class="highlight-col">41.10</td>
+                                <td class="highlight-col">0.9920</td>
+                                <td class="highlight-col">0.0029</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="figure" style="margin-top: 8px;">
+                        <img src="../slides/assets/lpips_bar_chart(2).png" alt="LPIPS Chart" style="max-height: 130px;">
+                        <caption>Achieving a <span class="hl-cyan">79x improvement</span> in perceptual quality.</caption>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Training Convergence</h2>
+                    <div class="figure">
+                        <img src="../slides/assets/training_loss_curves.png" alt="Training Loss Curves" style="max-height: 130px; background: rgba(255,255,255,0.9); padding: 4px; border-radius: 6px;">
+                        <caption>Generator fools the Discriminator by Epoch 14. 20 epochs on 89k images.</caption>
+                    </div>
+                </div>
+
+                <div class="section grow">
+                    <h2 class="section-title">Conclusion</h2>
+                    <ul>
+                        <li>Domain-specific adaptation + massive data scaling completely solves pixel-art super-resolution.</li>
+                        <li>Custom Edge + Palette losses drastically outperform generic SOTA models.</li>
+                        <li><strong>Future work:</strong> Real-time browser extension for retro game emulators.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

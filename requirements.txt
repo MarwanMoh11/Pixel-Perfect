@@ -9,3 +9,4 @@ scikit-image>=0.21.0
 matplotlib>=3.7.0
 pandas>=2.0.0
 kaggle>=1.5.16
+pygame-ce>=2.3.0

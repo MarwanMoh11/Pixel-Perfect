@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Pixel-Perfect: Content-Aware Super-Resolution for Retro Game Assets</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #333;
+            line-height: 1.7;
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #0a0a12 0%, #1a1a2e 100%);
+            color: #fff;
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        .hero .lead {
+            font-size: 1.15rem;
+            color: #bbb;
+            max-width: 700px;
+            margin: 0 auto 25px;
+        }
+        .hero .badge-custom {
+            background: rgba(0, 240, 255, 0.15);
+            color: #00f0ff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin: 0 5px;
+        }
+
+        /* Sections */
+        section {
+            padding: 60px 0;
+        }
+        section:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        section h2 {
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #222;
+        }
+        section h3 {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 15px;
+        }
+
+        /* Images */
+        .img-result {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+
+        /* Tables */
+        .table thead th {
+            background-color: #222;
+            color: #fff;
+        }
+        .table .highlight-row {
+            background-color: #e6f7ff;
+            font-weight: 600;
+        }
+
+        /* Team cards */
+        .team-card {
+            text-align: center;
+            padding: 30px 20px;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            background: #fff;
+        }
+        .team-card h5 {
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .team-card p {
+            color: #777;
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        footer {
+            background: #222;
+            color: #999;
+            padding: 30px 0;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        footer a {
+            color: #00f0ff;
+        }
+
+        /* Architecture diagram */
+        .arch-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .arch-block {
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            border: 2px solid;
+        }
+        .arch-block.b-input { background: #e0f7fa; color: #00838f; border-color: #00838f; }
+        .arch-block.b-rrdb { background: #f3e5f5; color: #6a1b9a; border-color: #6a1b9a; }
+        .arch-block.b-loss { background: #fff3e0; color: #ef6c00; border-color: #ef6c00; }
+        .arch-block.b-output { background: #e8f5e9; color: #2e7d32; border-color: #2e7d32; }
+        .arch-arrow { font-size: 1.3rem; color: #999; }
+
+        /* Loss formula */
+        .loss-formula {
+            font-family: 'JetBrains Mono', monospace;
+            background: #222;
+            color: #e8e8f0;
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1rem;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== HERO ==================== -->
+    <div class="hero">
+        <div class="container">
+            <h1>Pixel-Perfect</h1>
+            <p class="lead">Content-Aware Super-Resolution for Retro Game Assets using a Domain-Adapted ESRGAN with Edge-Aware and Palette-Constraint Losses</p>
+            <div>
+                <span class="badge-custom">ESRGAN</span>
+                <span class="badge-custom">Edge-Aware Loss</span>
+                <span class="badge-custom">Palette Constraint</span>
+                <span class="badge-custom">89k Dataset</span>
+            </div>
+            <p style="margin-top: 25px; color: #888; font-size: 0.9rem;">
+                Hadi Hesham &bull; Marwan Abudaif<br>
+                The American University in Cairo &mdash; Advanced Machine Learning, Spring 2026
+            </p>
+            <a href="https://github.com/MarwanMoh11/Pixel-Perfect" class="btn btn-outline-light btn-sm mt-2" target="_blank">View on GitHub &rarr;</a>
+        </div>
+    </div>
+
+    <!-- ==================== ABSTRACT ==================== -->
+    <section>
+        <div class="container">
+            <h2>Abstract</h2>
+            <p>Retro video game art is defined by hard-edged, grid-aligned pixels with limited color palettes. Standard super-resolution models, trained on photorealistic data, interpret these sharp boundaries as noise and smooth them out — producing an unacceptable "oil painting" effect. <strong>Pixel-Perfect</strong> introduces a specialized ESRGAN-based model that respects the geometric constraints of pixel art. By combining Nearest-Neighbor training pairs, a novel Edge-Aware Sharpness Loss, and a Palette-Constraint Loss, we achieve a <strong>79x improvement</strong> in perceptual quality (LPIPS) over standard bicubic upscaling while preserving the artistic intent of the original sprites.</p>
+        </div>
+    </section>
+
+    <!-- ==================== PROBLEM STATEMENT ==================== -->
+    <section>
+        <div class="container">
+            <h2>Problem Statement</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>Why Standard Upscaling Fails</h3>
+                    <ul>
+                        <li>Retro games run at ~<strong>256&times;240</strong> resolution — tiny on modern 4K monitors.</li>
+                        <li><strong>Bicubic/Bilinear</strong> interpolation produces blurry, muddy images.</li>
+                        <li>State-of-the-art SR models (SRGAN, SwinIR) are trained on <strong>photorealistic</strong> data and interpret pixel edges as noise.</li>
+                        <li>Result: an <strong>"oil painting" effect</strong> that destroys the artistic intent.</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h3>What We Need</h3>
+                    <ul>
+                        <li>Sharp, binary edges — <strong>no anti-aliasing</strong>.</li>
+                        <li>Limited color palettes <strong>preserved exactly</strong>.</li>
+                        <li>Grid-aligned pixel geometry <strong>respected</strong>.</li>
+                        <li><strong>4&times;</strong> resolution increase (32&times;32 &rarr; 128&times;128).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== DATASET ==================== -->
+    <section>
+        <div class="container">
+            <h2>Dataset</h2>
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h3>Kaggle Pixel Art Dataset</h3>
+                    <ul>
+                        <li><strong>89,399</strong> total pixel-art images (sprites & objects).</li>
+                        <li>All images are <strong>16&times;16</strong> resolution.</li>
+                        <li><strong>80/10/10</strong> Train / Validation / Test split.</li>
+                        <li>71,519 train &middot; 8,939 val &middot; 8,941 test.</li>
+                    </ul>
+                    <h3>Nearest-Neighbor Preprocessing</h3>
+                    <p>Unlike standard SR pipelines that use bicubic downsampling (which introduces blur), we create all training pairs using <strong>Nearest-Neighbor</strong> downsampling. This preserves blocky pixel geometry and teaches the model that the LR&rarr;HR mapping is geometric, not smooth.</p>
+                </div>
+                <div class="col-md-6 text-center">
+                    <img src="resources/dataset_statistics_figure.png" class="img-result" alt="Dataset Statistics">
+                    <p class="text-muted small">Dataset statistics: split distribution, size distribution, and dominant colors.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== ARCHITECTURE ==================== -->
+    <section>
+        <div class="container">
+            <h2>Model Architecture</h2>
+            
+            <h3>Generator: Pixel-Aware RRDBNet</h3>
+            <p>We adapted the ESRGAN backbone for pixel art by reducing the trunk to <strong>8 RRDB blocks</strong> (from 23) and replacing sub-pixel convolution with Nearest-Neighbor upsampling.</p>
+            
+            <div class="arch-container">
+                <div class="arch-block b-input">LR Image<br><small>32&times;32&times;3</small></div>
+                <span class="arch-arrow">&rarr;</span>
+                <div class="arch-block" style="background:#eee;">Conv First<br><small>3&rarr;64</small></div>
+                <span class="arch-arrow">&rarr;</span>
+                <div class="arch-block b-rrdb">8&times; RRDB<br><small>Residual-in-Residual<br>Dense Blocks</small></div>
+                <span class="arch-arrow">&rarr;</span>
+                <div class="arch-block" style="background:#eee;">Trunk Conv<br><small>+ Skip</small></div>
+                <span class="arch-arrow">&rarr;</span>
+                <div class="arch-block b-loss">NN Upsample<br><small>2&times; &rarr; 2&times;</small></div>
+                <span class="arch-arrow">&rarr;</span>
+                <div class="arch-block b-output">HR Image<br><small>128&times;128&times;3</small></div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <h3>Key Design Choices</h3>
+                    <ul>
+                        <li><strong>No Batch Normalization</strong> in Generator — prevents artifacts.</li>
+                        <li><strong>Residual scaling (0.2)</strong> for stable deep training.</li>
+                        <li><strong>Dense connections</strong> within each block (5 conv layers).</li>
+                        <li><strong>8 RRDB blocks</strong> — sufficient for pixel-art geometry.</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h3>VGG-Style Discriminator</h3>
+                    <ul>
+                        <li>Processes <strong>128&times;128</strong> patches.</li>
+                        <li>10 conv layers with <strong>BatchNorm</strong> + LeakyReLU.</li>
+                        <li>Progressive downsampling: 128&rarr;64&rarr;32&rarr;16&rarr;8&rarr;4.</li>
+                        <li>Binary classifier: Real vs. Generated.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== LOSS FUNCTIONS ==================== -->
+    <section>
+        <div class="container">
+            <h2>Custom Loss Functions</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>Edge-Aware Sharpness Loss</h3>
+                    <p>A Sobel-based penalty that targets the "smooth transition" magnitudes characteristic of anti-aliasing. This forces the generator to output <strong>hard, binary edges</strong> instead of gradients — eliminating the "oily" look of standard SR outputs.</p>
+                </div>
+                <div class="col-md-6">
+                    <h3>Palette-Constraint Loss</h3>
+                    <p>A novel penalty that snaps generated color values to discrete <strong>8-bit/16-bit color grids</strong>. This prevents the GAN from "inventing" new colors not present in the original sprite's limited palette — a common issue called <strong>color drifting</strong>.</p>
+                </div>
+            </div>
+
+            <div class="loss-formula">
+                &#8466;<sub>total</sub> = <span style="color:#00f0ff">1.0</span> &middot; &#8466;<sub>L1</sub> + <span style="color:#c084fc">0.1</span> &middot; &#8466;<sub>LPIPS</sub> + <span style="color:#f472b6">0.5</span> &middot; &#8466;<sub>Edge</sub> + <span style="color:#fbbf24">0.05</span> &middot; &#8466;<sub>Palette</sub> + <span style="color:#86efac">0.005</span> &middot; &#8466;<sub>Adv</sub>
+            </div>
+
+            <div class="arch-container">
+                <div class="arch-block b-input">L1 Pixel Loss</div>
+                <span class="arch-arrow">+</span>
+                <div class="arch-block b-rrdb">LPIPS Perceptual</div>
+                <span class="arch-arrow">+</span>
+                <div class="arch-block b-loss">Sobel Edge Loss</div>
+                <span class="arch-arrow">+</span>
+                <div class="arch-block b-loss">Palette Loss</div>
+                <span class="arch-arrow">+</span>
+                <div class="arch-block b-output">Adversarial Loss</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== RESULTS ==================== -->
+    <section>
+        <div class="container">
+            <h2>Results</h2>
+
+            <div class="row mb-4">
+                <div class="col-md-6 text-center">
+                    <img src="resources/training_loss_curves.png" class="img-result" alt="Training Loss Curves">
+                    <p class="text-muted small">Generator vs Discriminator loss over 20 epochs on 89k images.</p>
+                </div>
+                <div class="col-md-6 text-center">
+                    <img src="resources/generator_loss_breakdown.png" class="img-result" alt="Generator Loss Breakdown">
+                    <p class="text-muted small">Component breakdown: L1, LPIPS, Edge-Aware, Palette, and Adversarial losses.</p>
+                </div>
+            </div>
+
+            <h3>Quantitative Evaluation</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>PSNR (dB) &uarr;</th>
+                        <th>SSIM &uarr;</th>
+                        <th>LPIPS &darr;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Bicubic Upscale</td>
+                        <td>23.18</td>
+                        <td>0.8034</td>
+                        <td>0.4758</td>
+                    </tr>
+                    <tr>
+                        <td>ESRGAN (No Edge Loss)</td>
+                        <td>41.51</td>
+                        <td>0.9923</td>
+                        <td>0.0040</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td><strong>ESRGAN + Edge Loss (Ours)</strong></td>
+                        <td><strong>41.10</strong></td>
+                        <td><strong>0.9920</strong></td>
+                        <td><strong>0.0029</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="row mt-4 align-items-center">
+                <div class="col-md-6 text-center">
+                    <img src="resources/lpips_bar_chart(2).png" class="img-result" alt="LPIPS Bar Chart">
+                    <p class="text-muted small">79x improvement in perceptual quality (LPIPS) over bicubic baseline.</p>
+                </div>
+                <div class="col-md-6">
+                    <h3>Why LPIPS Matters Most</h3>
+                    <ul>
+                        <li>PSNR favors <strong>blurry</strong> outputs — it penalizes any pixel deviation equally.</li>
+                        <li>LPIPS measures <strong>perceptual similarity</strong> — how humans actually perceive quality.</li>
+                        <li>Our model: <strong>0.0029</strong> LPIPS (near-perfect perceptual fidelity).</li>
+                        <li>Baseline: <strong>0.4758</strong> LPIPS.</li>
+                        <li>That's a <strong>79&times; improvement</strong> in human-perceived quality.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== VISUAL COMPARISON ==================== -->
+    <section>
+        <div class="container">
+            <h2>Visual Comparison</h2>
+            <div class="text-center">
+                <img src="resources/visual_comparison_grid(5).png" class="img-result" style="max-width: 900px;" alt="Visual Comparison Grid">
+                <p class="text-muted small mt-2">Ground Truth (128&times;128) vs Bicubic Upscale (Baseline) vs Pixel-Perfect AI (Ours)</p>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-8 mx-auto">
+                    <ul>
+                        <li><strong>Bicubic</strong> introduces harsh blocky artifacts with exaggerated white/bright edges that don't match the original.</li>
+                        <li><strong>Pixel-Perfect (Ours)</strong> faithfully recovers smooth color transitions and sprite shape with visually near-identical output to ground truth.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== ABLATION ==================== -->
+    <section>
+        <div class="container">
+            <h2>Ablation Study</h2>
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center">
+                    <img src="resources/ablation_visual_grid(1).png" class="img-result" alt="Ablation Visual Grid">
+                    <p class="text-muted small">Visual comparison: Bicubic vs No Edge vs Edge Loss (Ours).</p>
+                </div>
+                <div class="col-md-6">
+                    <h3>Impact of Edge-Aware Loss</h3>
+                    <p>To validate the impact of our custom loss, we compared three configurations:</p>
+                    <ul>
+                        <li>Adding the Edge-Aware loss improves LPIPS by <strong>27%</strong> (0.0040 &rarr; 0.0029).</li>
+                        <li>There is a slight PSNR trade-off (41.51 &rarr; 41.10) — expected because sharpening can shift pixels by &plusmn;1.</li>
+                        <li>This trade-off is precisely captured by LPIPS: sharper outputs look better to humans even if PSNR drops slightly.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== DEMO ==================== -->
+    <section>
+        <div class="container">
+            <h2>Live Demo</h2>
+            <div class="row">
+                <div class="col-md-8 mx-auto">
+                    <p>We integrated our model's upscaled assets directly into a fully playable <strong>Mario game engine</strong>. The engine supports real-time hot-swapping between original NES graphics and our AI-upscaled assets using a single keypress.</p>
+                    
+                    <h3>Interactive Mario Demo</h3>
+                    <pre class="bg-dark text-light p-3 rounded"><code>cd mario_clone
+python3 mario_level_1.py</code></pre>
+                    <ul>
+                        <li>Press <strong>'T'</strong>: Toggle between Original (Nearest-Neighbor) and ESRGAN (Pixel-Perfect) graphics in real-time.</li>
+                        <li>Arrow Keys: Move and Jump.</li>
+                        <li>The toggle is seamless — no physics, timers, or game state is interrupted.</li>
+                    </ul>
+
+                    <h3>Side-by-Side Comparison Viewer</h3>
+                    <pre class="bg-dark text-light p-3 rounded"><code>python3 scripts/compare_viewer.py</code></pre>
+                    <p>A static 3-panel viewer showing Original (1x), Nearest-Neighbor (4x), and AI-Upscaled (4x ESRGAN) side-by-side.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== TEAM ==================== -->
+    <section>
+        <div class="container">
+            <h2>Team Contributions</h2>
+            <div class="row justify-content-center">
+                <div class="col-md-5">
+                    <div class="team-card">
+                        <h5>Hadi Hesham</h5>
+                        <p>Data Engineering & Preprocessing</p>
+                        <ul class="text-start small">
+                            <li>Dataset download, cleaning, and split</li>
+                            <li>Nearest-Neighbor downsampling pipeline</li>
+                            <li>Data loaders and augmentation</li>
+                            <li>Dataset statistics and visualizations</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="team-card">
+                        <h5>Marwan Abudaif</h5>
+                        <p>Architecture & Training</p>
+                        <ul class="text-start small">
+                            <li>ESRGAN/RRDBNet generator implementation</li>
+                            <li>Edge-Aware & Palette loss functions</li>
+                            <li>Training loop with AMP & checkpointing</li>
+                            <li>Ablation studies and demo engine</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== CONCLUSION ==================== -->
+    <section>
+        <div class="container">
+            <h2>Conclusion & Future Work</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>Key Takeaways</h3>
+                    <ul>
+                        <li>Domain-specific adaptation combined with massive data scaling completely solves the pixel-art super-resolution problem.</li>
+                        <li>Nearest-Neighbor training pairs, Edge-Aware loss, and Palette constraints are critical for pixel art fidelity.</li>
+                        <li>Achieved a <strong>79&times; improvement</strong> in perceptual quality over bicubic baseline.</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h3>Future Work</h3>
+                    <ul>
+                        <li>Direct <strong>4K upscaling</strong> (16&times;) for modern displays.</li>
+                        <li>Deploying as a lightweight <strong>browser extension</strong> for web-based retro game emulators.</li>
+                        <li>Extending to <strong>animated sprite sheets</strong> with temporal consistency.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== REFERENCES ==================== -->
+    <section>
+        <div class="container">
+            <h2>References</h2>
+            <ol>
+                <li>Wang, X. et al. "ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks." <em>ECCV Workshops</em>, 2018.</li>
+                <li>Zhang, R. et al. "The Unreasonable Effectiveness of Deep Features as a Perceptual Metric." <em>CVPR</em>, 2018.</li>
+                <li>Liang, J. et al. "SwinIR: Image Restoration Using Swin Transformer." <em>ICCV Workshops</em>, 2021.</li>
+                <li>Kaggle Pixel Art Dataset: <a href="https://www.kaggle.com/datasets/ebrahimelgazar/pixel-art" target="_blank">kaggle.com/datasets/ebrahimelgazar/pixel-art</a></li>
+            </ol>
+        </div>
+    </section>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer>
+        <div class="container">
+            <p>Pixel-Perfect &copy; 2026 | The American University in Cairo | 
+                <a href="https://github.com/MarwanMoh11/Pixel-Perfect" target="_blank">GitHub Repository</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

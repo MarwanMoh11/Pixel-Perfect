@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel-Perfect | Final Delivery Presentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* =========== RESET & BASE =========== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; color: #e8e8f0; }
+
+        /* =========== CSS VARIABLES =========== */
+        :root {
+            --accent: #00f0ff;
+            --accent2: #c084fc;
+            --accent3: #f472b6;
+            --bg-dark: #0a0a12;
+            --bg-card: rgba(20, 20, 40, 0.7);
+            --text: #e8e8f0;
+            --text-dim: #9898b0;
+            --glass: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.08);
+            --font-body: 'Inter', system-ui, sans-serif;
+            --font-pixel: 'Press Start 2P', monospace;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        /* =========== SLIDE CONTAINER =========== */
+        .deck {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 80px;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(60px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            font-family: var(--font-body);
+            overflow-y: auto;
+        }
+        .slide.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+        }
+        .slide.prev {
+            transform: translateX(-60px);
+        }
+
+        /* =========== PRINT & PDF EXPORT =========== */
+        @media print {
+            body { overflow: visible !important; background: #0a0a12; color: #e8e8f0; }
+            .deck { display: block !important; position: static !important; height: auto !important; overflow: visible !important; }
+            .slide {
+                position: relative !important;
+                display: flex !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                transform: none !important;
+                page-break-after: always !important;
+                height: 100vh !important;
+                background: #0a0a12 !important;
+                color: #e8e8f0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                overflow: hidden !important;
+            }
+            .controls, .slide-counter { display: none !important; }
+            /* Force images/diagrams to render correctly */
+            .glass-panel { break-inside: avoid !important; }
+        }
+
+        /* =========== GLOBAL BG EFFECTS =========== */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(180px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .bg-glow.cyan { background: var(--accent); top: -200px; left: -100px; }
+        .bg-glow.purple { background: var(--accent2); bottom: -200px; right: -100px; }
+
+        /* =========== TYPOGRAPHY =========== */
+        h1.title {
+            font-family: var(--font-pixel);
+            font-size: 2.6rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        h2.slide-title {
+            font-family: var(--font-pixel);
+            font-size: 1.3rem;
+            color: var(--accent);
+            margin-bottom: 32px;
+            text-align: center;
+            letter-spacing: 1px;
+            text-shadow: 0 0 30px rgba(0,240,255,0.3);
+        }
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent2);
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            font-size: 1.15rem;
+            color: var(--text-dim);
+            text-align: center;
+            max-width: 700px;
+            line-height: 1.7;
+        }
+        .authors {
+            font-size: 1rem;
+            color: var(--accent2);
+            margin-top: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* =========== CARDS & CONTAINERS =========== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 32px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        /* =========== NAV CONTROLS =========== */
+        .nav {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 100;
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            backdrop-filter: blur(16px);
+        }
+        .nav button {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .nav button:hover {
+            background: rgba(0,240,255,0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .slide-counter {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* =========== SPECIAL: Architecture Diagram =========== */
+        .arch-flow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .arch-box {
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .arch-box.input { background: rgba(0,240,255,0.1); color: var(--accent); border-color: var(--accent); }
+        .arch-box.rrdb { background: rgba(192,132,252,0.1); color: var(--accent2); border-color: var(--accent2); }
+        .arch-box.output { background: rgba(134,239,172,0.1); color: #86efac; border-color: #86efac; }
+        .arch-arrow { color: var(--text-dim); font-size: 1.2rem; }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin: 4px;
+        }
+        .tag.cyan { background: rgba(0,240,255,0.1); color: var(--accent); }
+        .tag.purple { background: rgba(192,132,252,0.1); color: var(--accent2); }
+
+        /* =========== ANIMATIONS =========== */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        .float-anim { animation: float 4s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow cyan"></div>
+<div class="bg-glow purple"></div>
+
+<div class="deck" id="deck">
+    <!-- SLIDE 1: Title -->
+    <div class="slide active">
+        <div style="font-size:3.5rem; margin-bottom:20px;" class="float-anim">🎮</div>
+        <h1 class="title">PIXEL-PERFECT</h1>
+        <p class="subtitle">Content-Aware Super-Resolution for Retro Game Assets</p>
+        <p class="authors">Hadi Hesham &nbsp;·&nbsp; Marwan Abudaif</p>
+        <p style="color:var(--text-dim); font-size:0.85rem; margin-top:10px;">Advanced Machine Learning | Spring 2026</p>
+    </div>
+
+    <!-- SLIDE 2: Problem Statement -->
+    <div class="slide">
+        <h2 class="slide-title">The Challenge</h2>
+        <div class="two-col">
+            <div class="card">
+                <h3>Retro Grid Constraints</h3>
+                <p style="font-size:0.9rem; color:var(--text-dim);">Retro games run at ~256x240 resolution. Massively upscaling for modern 4K displays destroys visual intent if done incorrectly.</p>
+            </div>
+            <div class="card">
+                <h3>Failure of SOTA</h3>
+                <p style="font-size:0.9rem; color:var(--text-dim);">Models like SwinIR or SRGAN interpret sharp edges as "noise," creating a blurry "oil painting" effect on pixel art.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 3: Original Model (Literature) -->
+    <div class="slide">
+        <h2 class="slide-title">Literature Review</h2>
+        <div class="card" style="width:100%; max-width:800px;">
+            <h3>ESRGAN (Literature Backbone)</h3>
+            <div class="arch-flow" style="margin-top:20px;">
+                <div class="arch-box input">LR Image</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-box" style="border-color:var(--text-dim);">RRDB Trunk (23 blocks)</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-box" style="border-color:var(--text-dim);">Sub-pixel Conv</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-box output">HR Output</div>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-dim); margin-top:20px;">The original ESRGAN uses L1 Loss and VGG Perceptual Loss, which are optimized for photorealistic textures, not pixel art.</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 4: Proposed Architecture (Milestone 1) -->
+    <div class="slide">
+        <h2 class="slide-title">Proposed Architecture</h2>
+        <div class="card" style="width:100%; max-width:800px;">
+            <h3>Pixel-Aware RRDBNet</h3>
+            <div class="arch-flow" style="margin-top:20px;">
+                <div class="arch-box input">NN-Downsampled LR</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-box rrdb">8 Optimized RRDB Blocks</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-box" style="background:rgba(244,114,182,0.1); color:var(--accent3); border-color:var(--accent3);">Nearest Upsampling</div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-box output">Sharp HR Output</div>
+            </div>
+            <div style="margin-top:20px; display:flex; justify-content:center; gap:10px;">
+                <span class="tag cyan">Edge-Aware Loss</span>
+                <span class="tag purple">Geometric Prior</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 5: Final Architecture (Milestone 2) -->
+    <div class="slide">
+        <h2 class="slide-title">Final Model & Evolution</h2>
+        <div class="two-col">
+            <div class="card">
+                <h3>Palette Constraint</h3>
+                <p style="font-size:0.85rem; color:var(--text-dim);">Added in Milestone 2 to strictly enforce discrete color grids, preventing "color drifting" typical in GAN outputs.</p>
+            </div>
+            <div class="card">
+                <h3>Adversarial Tuning</h3>
+                <p style="font-size:0.85rem; color:var(--text-dim);">Fully enabled the GAN discriminator to push texture sharpness to the limit while maintaining pixel fidelity.</p>
+            </div>
+        </div>
+        <p style="margin-top:20px; font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">Total Loss = L1 + LPIPS + Edge + Palette + Adv</p>
+    </div>
+
+    <!-- SLIDE 6: Training Results (Graphs) -->
+    <div class="slide">
+        <h2 class="slide-title">Training Results</h2>
+        <div class="two-col">
+            <div class="card" style="text-align:center;">
+                <p style="font-size:0.8rem; margin-bottom:10px;">Training Loss Curves</p>
+                <img src="assets/training_loss_curves.png" style="width:100%; height:200px; object-fit: contain; border:1px solid var(--border); border-radius: 8px;">
+            </div>
+            <div class="card" style="text-align:center;">
+                <p style="font-size:0.8rem; margin-bottom:10px;">LPIPS Progress</p>
+                <img src="assets/lpips_bar_chart(2).png" style="width:100%; height:200px; object-fit: contain; border:1px solid var(--border); border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 7: Visual Comparison -->
+    <div class="slide">
+        <h2 class="slide-title">Visual Results</h2>
+        <div class="card" style="width:100%; max-width:900px; text-align:center;">
+            <img src="assets/visual_comparison_grid(5).png" style="width:100%; max-height:450px; object-fit: contain; border-radius: 8px;">
+            <p style="font-size:0.8rem; color:var(--text-dim); margin-top:10px;">Ground Truth vs. Bicubic vs. Pixel-Perfect (Ours)</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 8: Live Demo (Simulator) -->
+    <div class="slide">
+        <h2 class="slide-title">Live Demo: Interactive Mario</h2>
+        <div class="card" style="width:100%; max-width:800px; text-align:center;">
+            <div style="font-size:3rem; margin-bottom:10px;">🕹️</div>
+            <h3>Real-Time Toggle Simulator</h3>
+            <p style="font-size:0.9rem; color:var(--text-dim); margin-top:10px;">A playable Mario environment with a seamless graphics engine toggle.</p>
+            <div style="background:rgba(0,0,0,0.5); padding:15px; border-radius:10px; margin-top:20px; font-family:var(--font-mono); font-size:0.9rem;">
+                <span style="color:var(--accent);">Press 'T' Key</span> to Hot-Swap Graphics
+            </div>
+            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:10px; margin-top:10px; font-family:var(--font-mono); font-size:0.7rem; color:#9898b0;">
+                python3 mario_clone/mario_level_1.py
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 8: Conclusion & Future Work -->
+    <div class="slide">
+        <h2 class="slide-title">Conclusion</h2>
+        <div class="card" style="width:100%; max-width:800px;">
+            <ul style="list-style:none; display:flex; flex-direction:column; gap:15px;">
+                <li style="font-size:0.95rem;">✅ <strong>79x Improvement</strong> in perceptual quality over bicubic.</li>
+                <li style="font-size:0.95rem;">✅ Domain-specific priors outperform general SOTA.</li>
+                <li style="font-size:0.95rem;">🚀 <strong>Future:</strong> Real-time browser extension for emulators.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- SLIDE 9: Technical Contributions -->
+    <div class="slide">
+        <h2 class="slide-title">Team Contributions</h2>
+        <div class="two-col">
+            <div class="card">
+                <h3>Hadi Hesham</h3>
+                <p style="font-size:0.85rem; color:var(--text-dim);">Data Engineering, NN-Downsampling Pipeline, Dataset Visualizations, and EDA.</p>
+            </div>
+            <div class="card">
+                <h3>Marwan Abudaif</h3>
+                <p style="font-size:0.85rem; color:var(--text-dim);">Model Architecture (RRDBNet), Edge & Palette Loss, Training Loop, and Demo Engine.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 10: Thank You -->
+    <div class="slide">
+        <h1 class="title">THANK YOU</h1>
+        <p class="subtitle">Questions?</p>
+        <p style="margin-top:20px; font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">github.com/MarwanMoh11/Pixel-Perfect</p>
+    </div>
+</div>
+
+<div class="nav">
+    <button onclick="prevSlide()">←</button>
+    <div class="slide-counter" id="counter">1 / 10</div>
+    <button onclick="nextSlide()">→</button>
+</div>
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const counter = document.getElementById('counter');
+
+    function updateSlide() {
+        slides.forEach((slide, index) => {
+            slide.classList.toggle('active', index === currentSlide);
+            slide.classList.toggle('prev', index < currentSlide);
+        });
+        counter.innerText = `${currentSlide + 1} / ${slides.length}`;
+    }
+
+    function nextSlide() {
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            updateSlide();
+        }
+    }
+
+    function prevSlide() {
+        if (currentSlide > 0) {
+            currentSlide--;
+            updateSlide();
+        }
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+        if (e.key === 'ArrowLeft') prevSlide();
+    });
+</script>
+
+</body>
+</html>

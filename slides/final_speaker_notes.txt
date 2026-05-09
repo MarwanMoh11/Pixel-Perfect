@@ -1,0 +1,70 @@
+PIXEL-PERFECT — FINAL DELIVERY SPEAKER NOTES
+=============================================
+
+SLIDE 1 — TITLE
+Good morning/afternoon everyone. We are Hadi Hesham and Marwan Abudaif, and we’re excited to present the final delivery of Pixel-Perfect: our content-aware super-resolution system for retro game assets. This project represents the culmination of our research into domain-specific upscaling, moving beyond generic models to respect the unique geometry of pixel art.
+
+---
+
+SLIDE 2 — THE CHALLENGE
+Retro games are built on constraints—resolutions as low as 256x240 and palettes limited to 64 colors. When you upscale these by 4x for modern displays, standard bicubic interpolation creates mud. Even modern state-of-the-art models like SwinIR fail here because they interpret sharp pixel edges as noise and smooth them out. We call this the "oil painting effect," and it destroys the artistic intent of the original creators.
+
+---
+
+SLIDE 3 — LITERATURE REVIEW
+To understand the literature, we looked at ESRGAN—the Enhanced Super-Resolution GAN. It’s the gold standard for photorealistic upscaling, using 23 Residual-in-Residual Dense Blocks. However, its original loss functions—L1 and VGG Perceptual Loss—are trained on real-world photos. When applied to pixel art, ESRGAN still tends to anti-alias edges, which is exactly what we want to avoid.
+
+---
+
+SLIDE 4 — PROPOSED ARCHITECTURE
+Our proposed solution was a Pixel-Aware RRDBNet. We stripped the RRDB trunk down to 8 blocks to avoid overfitting on the simpler geometry of pixel art and replaced the sub-pixel convolution upsampler with a Nearest-Neighbor interpolation layer. This geometric prior ensures that the network starts with a blocky baseline rather than a blurry one.
+
+---
+
+SLIDE 5 — FINAL MODEL & EVOLUTION
+In our final implementation for Milestone 2, we introduced a Palette-Constraint Loss. This is a custom penalty that snaps generated color values to discrete 8-bit grids. This solved the "color drifting" issue where the GAN would invent new shades not present in the source. Our final objective function is a weighted combination of L1, LPIPS perceptual loss, our Sobel-based Edge-Aware loss, the new Palette loss, and a fully enabled Adversarial Loss.
+
+---
+
+SLIDE 6 — TRAINING RESULTS
+We scaled our training to the full 89,000-image Kaggle Pixel Art dataset. Over 20 epochs, we saw a clear convergence where the generator successfully "fooled" the discriminator. As shown in the charts, our adversarial component drove the high-frequency sharpness while the custom edge and palette losses kept the output aligned with the pixel grid.
+
+---
+
+SLIDE 7 — LIVE DEMO: INTERACTIVE MARIO
+[DEMO START]
+Now, for the live demo. We’ve integrated our model directly into a Mario game engine.
+"As you can see, the game is currently running with AI upscaling. Notice the sharpness of the Goombas and the bricks."
+[PRESS 'T' KEY]
+"When I press 'T', the engine instantly hot-swaps the assets to the original pixelated versions. Look at the difference in the character outlines and the background clouds."
+[PRESS 'T' KEY AGAIN]
+"The toggle is seamless, allowing us to verify that our model maintains perfect fidelity to the hitboxes and physics of the original game while dramatically increasing visual clarity."
+[DEMO END]
+
+---
+
+SLIDE 8 — CONCLUSION
+To conclude, our system achieves a 79x improvement in perceptual quality (LPIPS) over standard upscaling. We’ve proven that domain-specific priors—like our edge and palette losses—significantly outperform generic SOTA models for specialized tasks like retro game restoration. Our next step is deploying this as a real-time browser extension for retro emulators.
+
+---
+
+SLIDE 9 — TECHNICAL CONTRIBUTIONS
+- Hadi Hesham: Led the data engineering efforts, including the nearest-neighbor downsampling pipeline, dataset cleaning, and exploratory data analysis.
+- Marwan Abudaif: Architected the RRDBNet generator, implemented the custom Edge-Aware and Palette-Constraint loss functions, and engineered the real-time demo simulator engine.
+
+---
+
+SLIDE 10 — THANK YOU
+Thank you for your time. We’re now happy to take any questions.
+
+---
+
+ANTICIPATED QUESTIONS & ANSWERS:
+Q: Why use only 8 RRDB blocks?
+A: Pixel art has lower entropy and more repetitive geometric patterns than natural images. 8 blocks provided the perfect balance between reconstruction quality and inference speed, avoiding the "over-smoothing" we saw with 23 blocks.
+
+Q: How do you handle colorkeys/transparency in the demo?
+A: We implemented a "near-black" cleanup function that snaps ESRGAN's slightly noisy output back to pure (0,0,0) so Pygame's transparency masking remains perfect.
+
+Q: Is the 79x improvement just because you used a better dataset?
+A: No, the 79x is measured on LPIPS (perceptual similarity). The improvement comes from the model learning to reconstruct sharp edges rather than blurry approximations.

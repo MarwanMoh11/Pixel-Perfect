@@ -25,31 +25,59 @@ Create a virtual environment and install the required packages:
 ```bash
 git clone https://github.com/MarwanMoh11/Pixel-Perfect.git
 cd Pixel-Perfect
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+## Running the Live Demo
+
+We provide two ways to experience the **Pixel-Perfect** model in practice:
+
+### 1. Interactive Mario Demo
+A fully playable Mario clone where you can toggle the AI upscaling in real-time.
+```bash
+cd mario_clone
+python3 mario_level_1.py
+```
+- **Press `T`**: Toggle between Original (Nearest-Neighbor) and ESRGAN (Pixel-Perfect) graphics.
+- **Arrow Keys**: Move and Jump.
+
+### 2. Side-by-Side Comparison Viewer
+A static viewer that allows you to compare the three stages of upscaling across the entire first level.
+```bash
+python3 scripts/compare_viewer.py
+```
+- **Left Panel**: True Original (1x NES Scale)
+- **Middle Panel**: Nearest-Neighbor (4x Stretched)
+- **Right Panel**: AI-Upscaled (Pixel-Perfect ESRGAN)
+
+## Model Weights & Dataset
+
+- **Model Weights**: [Download Checkpoints](https://example.com/weights) (RRDBNet Generator)
+- **Dataset**: [Kaggle Pixel Art Dataset](https://www.kaggle.com/datasets/ebrahimelgazar/pixel-art)
 
 ## Directory Structure
 
 ```text
 Pixel-Perfect/
-├── configs/            # Configuration files (YAML/JSON)
-├── data/               # Raw and processed datasets (ignored in git)
-├── models/             # Pre-trained and locally trained checkpoints (ignored in git)
-├── notebooks/          # Jupyter notebooks for data exploration and visualizations
-├── outputs/            # Output images, logs, and evaluation figures
-├── scripts/            # Standalone utility scripts
-├── src/                # Core source code
-│   ├── data/           # Data loaders and nearest-neighbor transforms
-│   ├── models/         # ESRGAN definition (RRDBNet & Discriminator)
-│   └── training/       # Loss functions (including Edge-Aware Sharpness Loss) and training loops
-├── .gitignore
+├── mario_clone/        # Playable Mario Demo
+├── scripts/            # Evaluation and Utility scripts
+├── src/                # Core Source Code (ESRGAN, Training Loops)
+├── slides/             # Project Presentation
+├── models/             # Model Checkpoints
 ├── README.md
 └── requirements.txt
 ```
 
+## Team Contributions
+
+- **Hadi Hesham**: Data engineering, dataset preprocessing (Nearest-Neighbor downsampling), data loaders, and initial EDA.
+- **Marwan Abudaif**: Model architecture (ESRGAN/RRDBNet), training loop implementation, Edge-Aware & Palette loss functions, and demo integration.
+
 ## Evaluation Metrics
 
-This project uses the following metrics to evaluate upscaling quality:
+We use the following metrics to evaluate upscaling quality:
 - **PSNR**: Peak Signal-to-Noise Ratio.
 - **SSIM**: Structural Similarity Index.
-- **LPIPS**: Learned Perceptual Image Patch Similarity. Critical for capturing how "natural" and perceptually accurate the image is compared to the original sprite.
+- **LPIPS**: Learned Perceptual Image Patch Similarity (Captured the 79x improvement in visual quality).
